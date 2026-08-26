@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NEXAR - Marketplace B2B para pequenas empresas encontrarem fornecedores, solicitarem cotações, compararem ofertas e gerenciarem pedidos.">
+    <meta name="keywords" content="fornecedores, marketplace B2B, solicitações de cotação, pedidos, parceiros de negócios, compras">
+    <meta name="author" content="NEXAR">
+    <meta name="robots" content="index, follow">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nexar.io">
+    <meta property="og:title" content="NEXAR - Marketplace B2B para Pequenas Empresas">
+    <meta property="og:description" content="Encontre fornecedores confiáveis, solicite cotações, compare ofertas e gerencie pedidos em uma plataforma.">
+    <meta property="og:image" content="/public/assets/images/og-image.jpg">
+    <meta property="og:site_name" content="NEXAR">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://nexar.io">
+    <meta name="twitter:title" content="NEXAR - Marketplace B2B para Pequenas Empresas">
+    <meta name="twitter:description" content="Encontre fornecedores confiáveis, solicite cotações, compare ofertas e gerencie pedidos em uma plataforma.">
+    <meta name="twitter:image" content="/public/assets/images/twitter-image.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="icon" type="image/png" href="/NEXAR/public/assets/images/Icone.png">
+    <link rel="shortcut icon" type="image/png" href="/NEXAR/public/assets/images/Icone.png">
+    <link rel="apple-touch-icon" href="/NEXAR/public/assets/images/Icone.png">
+    <link rel="canonical" href="https://nexar.io">
+    
+    <title>NEXAR - Marketplace B2B de Fornecedores</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/NEXAR/public/css/variables.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/global.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/components.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/animations.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/responsive.css">
+    
+    <style>
+        .search-section {
+            padding: var(--space-12) var(--space-4);
+            background: linear-gradient(180deg, transparent 0%, rgba(255, 107, 53, 0.05) 100%);
+        }
+
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .search-header h2 {
+            font-size: var(--text-4xl);
+            margin-bottom: var(--space-3);
+        }
+
+        .search-header p {
+            color: var(--color-gray-400);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .search-form {
+            display: flex;
+            gap: var(--space-3);
+            margin-bottom: var(--space-8);
+        }
+
+        .search-input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
+            background: rgba(255, 107, 53, 0.05);
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: var(--radius-lg);
+            transition: all var(--transition-base);
+        }
+
+        .search-input-group:focus-within {
+            background: rgba(255, 107, 53, 0.1);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
+        }
+
+        .search-input-group input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--color-white);
+            font-size: var(--text-base);
+            outline: none;
+        }
+
+        .search-input-group input::placeholder {
+            color: var(--color-gray-500);
+        }
+
+        .search-input-group svg {
+            color: var(--color-gray-400);
+            width: 20px;
+            height: 20px;
+        }
+
+        .categories-section {
+            padding: var(--space-12) var(--space-4);
+        }
+
+        .categories-header {
+            text-align: center;
+            margin-bottom: var(--space-10);
+        }
+
+        .categories-header h2 {
+            font-size: var(--text-4xl);
+            margin-bottom: var(--space-3);
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+        }
+
+        .category-card {
+            padding: var(--space-6);
+            background: rgba(255, 107, 53, 0.03);
+            border: 1px solid rgba(255, 107, 53, 0.1);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .category-card:hover {
+            background: rgba(255, 107, 53, 0.08);
+            border-color: rgba(255, 107, 53, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .category-icon {
+            font-size: var(--text-4xl);
+            margin-bottom: var(--space-3);
+        }
+
+        .category-name {
+            font-weight: var(--font-semibold);
+            color: var(--color-white);
+        }
+
+        .category-count {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-top: var(--space-2);
+        }
+
+        .providers-section {
+            padding: var(--space-12) var(--space-4);
+            background: linear-gradient(180deg, rgba(255, 107, 53, 0.05) 0%, transparent 100%);
+        }
+
+        .providers-header {
+            text-align: center;
+            margin-bottom: var(--space-10);
+        }
+
+        .providers-header h2 {
+            font-size: var(--text-4xl);
+            margin-bottom: var(--space-3);
+        }
+
+        .providers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-6);
+        }
+
+        .provider-card {
+            padding: var(--space-6);
+            background: rgba(18, 18, 18, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.15);
+            border-radius: var(--radius-lg);
+            transition: all var(--transition-base);
+        }
+
+        .provider-card:hover {
+            background: rgba(18, 18, 18, 0.8);
+            border-color: rgba(255, 107, 53, 0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(255, 107, 53, 0.1);
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .provider-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-weight: var(--font-bold);
+            flex-shrink: 0;
+        }
+
+        .provider-info {
+            flex: 1;
+        }
+
+        .provider-name {
+            font-weight: var(--font-semibold);
+            color: var(--color-white);
+            font-size: var(--text-sm);
+        }
+
+        .provider-title {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        .provider-rating {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            font-size: var(--text-sm);
+        }
+
+        .provider-description {
+            color: var(--color-gray-400);
+            font-size: var(--text-sm);
+            line-height: var(--leading-relaxed);
+            margin-bottom: var(--space-4);
+        }
+
+        .provider-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .skill-tag {
+            padding: var(--space-1) var(--space-3);
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            color: var(--color-primary);
+        }
+
+        .provider-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: var(--space-4);
+            border-top: 1px solid rgba(255, 107, 53, 0.1);
+        }
+
+        .provider-rate {
+            font-weight: var(--font-semibold);
+            color: var(--color-primary);
+        }
+
+        .provider-btn {
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--color-white);
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .provider-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 107, 53, 0.2);
+        }
+
+        .stats-section {
+            padding: var(--space-12) var(--space-4);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-6);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: var(--space-6);
+        }
+
+        .stat-number {
+            font-size: var(--text-6xl);
+            font-weight: var(--font-black);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-2);
+        }
+
+        .stat-label {
+            color: var(--color-gray-400);
+            font-size: var(--text-base);
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: var(--space-6);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-primary);
+        }
+
+        .hero-stat-label {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-top: var(--space-1);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-6);
+        }
+
+        .feature-card {
+            padding: var(--space-6);
+            background: rgba(255, 107, 53, 0.03);
+            border: 1px solid rgba(255, 107, 53, 0.1);
+            border-radius: var(--radius-lg);
+            transition: all var(--transition-base);
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 107, 53, 0.08);
+            border-color: rgba(255, 107, 53, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(0, 212, 170, 0.2));
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-4);
+            color: var(--color-primary);
+        }
+
+        .feature-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-white);
+            margin-bottom: var(--space-2);
+        }
+
+        .feature-description {
+            font-size: var(--text-sm);
+            color: var(--color-gray-400);
+            line-height: var(--leading-relaxed);
+        }
+
+        .section {
+            padding: var(--space-12) var(--space-4);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: var(--space-10);
+        }
+
+        .section-tag {
+            display: inline-block;
+            padding: var(--space-2) var(--space-4);
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: var(--radius-full);
+            color: var(--color-primary);
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-4);
+        }
+
+        .section-title {
+            font-size: var(--text-5xl);
+            font-weight: var(--font-black);
+            margin-bottom: var(--space-4);
+            color: var(--color-white);
+        }
+
+        .section-description {
+            max-width: 600px;
+            margin: 0 auto;
+            color: var(--color-gray-400);
+            font-size: var(--text-lg);
+        }
+
+        .how-it-works-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-8);
+            margin-top: var(--space-10);
+        }
+
+        .step-card {
+            position: relative;
+            padding: var(--space-8) var(--space-6);
+            background: rgba(18, 18, 18, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.15);
+            border-radius: var(--radius-lg);
+            text-align: center;
+        }
+
+        .step-number {
+            font-size: var(--text-6xl);
+            font-weight: var(--font-black);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-4);
+        }
+
+        .step-title {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-white);
+            margin-bottom: var(--space-3);
+        }
+
+        .step-description {
+            color: var(--color-gray-400);
+            font-size: var(--text-base);
+            line-height: var(--leading-relaxed);
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--space-6);
+            margin-top: var(--space-10);
+        }
+
+        .testimonial-card {
+            padding: var(--space-6);
+            background: rgba(18, 18, 18, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.15);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .testimonial-content {
+            flex: 1;
+            margin-bottom: var(--space-4);
+        }
+
+        .testimonial-quote {
+            font-size: var(--text-base);
+            line-height: var(--leading-relaxed);
+            color: var(--color-gray-300);
+            font-style: italic;
+            margin-bottom: var(--space-4);
+        }
+
+        .testimonial-stars {
+            display: flex;
+            gap: var(--space-1);
+            margin-bottom: var(--space-4);
+        }
+
+        .star {
+            color: var(--color-warning);
+            font-size: var(--text-lg);
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding-top: var(--space-4);
+            border-top: 1px solid rgba(255, 107, 53, 0.1);
+        }
+
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-weight: var(--font-bold);
+            font-size: var(--text-lg);
+        }
+
+        .author-info h4 {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--color-white);
+            margin: 0;
+        }
+
+        .author-info p {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            margin: 0;
+        }
+
+        .cta-section {
+            padding: var(--space-12) var(--space-4);
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(0, 212, 170, 0.05) 100%);
+        }
+
+        .cta-content {
+            max-width: 700px;
+            margin: 0 auto;
+            text-align: center;
+            padding: var(--space-12) var(--space-6);
+            background: rgba(18, 18, 18, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: var(--radius-xl);
+        }
+
+        .cta-title {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-black);
+            margin-bottom: var(--space-4);
+        }
+
+        .cta-description {
+            font-size: var(--text-lg);
+            color: var(--color-gray-400);
+            margin-bottom: var(--space-8);
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: var(--space-4);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-cta {
+            padding: var(--space-4) var(--space-8);
+            border-radius: var(--radius-lg);
+            border: none;
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: var(--text-base);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .btn-cta-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: var(--color-white);
+        }
+
+        .btn-cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-cta-secondary {
+            background: transparent;
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-600);
+        }
+
+        .btn-cta-secondary:hover {
+            background: var(--color-gray-900);
+            border-color: var(--color-primary);
+        }
+
+        .footer {
+            background: var(--color-black-light);
+            border-top: 1px solid rgba(255, 107, 53, 0.1);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-12) var(--space-4);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: var(--space-8);
+            margin-bottom: var(--space-10);
+        }
+
+        .footer-brand {
+            flex: 1;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-lg);
+            font-weight: var(--font-bold);
+            color: var(--color-white);
+            margin-bottom: var(--space-4);
+            text-decoration: none;
+        }
+
+        .footer-logo-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--color-primary);
+        }
+
+        .footer-description {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            line-height: var(--leading-relaxed);
+            margin-bottom: var(--space-4);
+        }
+
+        .footer-social {
+            display: flex;
+            gap: var(--space-3);
+        }
+
+        .footer-social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--color-primary);
+            transition: all var(--transition-base);
+            text-decoration: none;
+        }
+
+        .footer-social-link:hover {
+            background: rgba(255, 107, 53, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .footer-social-link svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .footer-section h4 {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--color-white);
+            margin-bottom: var(--space-4);
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .footer-link {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            text-decoration: none;
+            transition: all var(--transition-base);
+        }
+
+        .footer-link:hover {
+            color: var(--color-primary);
+        }
+
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: var(--space-8);
+            border-top: 1px solid rgba(255, 107, 53, 0.1);
+            flex-wrap: wrap;
+            gap: var(--space-4);
+        }
+
+        .footer-copyright {
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+        }
+
+        .footer-legal {
+            display: flex;
+            gap: var(--space-6);
+        }
+
+        .footer-legal-link {
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+            text-decoration: none;
+            transition: all var(--transition-base);
+        }
+
+        .footer-legal-link:hover {
+            color: var(--color-primary);
+        }
+
+        .navbar {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4);
+            gap: var(--space-6);
+        }
+
+        .navbar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-lg);
+            font-weight: var(--font-bold);
+            color: var(--color-white);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .navbar-logo-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--color-primary);
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: var(--space-6);
+            flex: 1;
+            justify-content: center;
+        }
+
+        .navbar-link {
+            color: var(--color-gray-400);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            transition: all var(--transition-base);
+        }
+
+        .navbar-link:hover {
+            color: var(--color-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            gap: var(--space-3);
+            white-space: nowrap;
+        }
+
+        .navbar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--color-white);
+            cursor: pointer;
+        }
+
+        .navbar-toggle svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-4);
+        }
+
+        .hero {
+            padding: var(--space-16) var(--space-4) var(--space-12);
+        }
+
+        .hero-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: var(--radius-full);
+            color: var(--color-primary);
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-6);
+        }
+
+        .hero-badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: var(--font-black);
+            line-height: 1.2;
+            margin-bottom: var(--space-6);
+        }
+
+        .hero-title-gradient {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-description {
+            font-size: var(--text-lg);
+            color: var(--color-gray-400);
+            max-width: 600px;
+            margin: 0 auto var(--space-8);
+            line-height: var(--leading-relaxed);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: var(--space-4);
+            justify-content: center;
+            margin-bottom: var(--space-10);
+            flex-wrap: wrap;
+        }
+
+        .btn-hero {
+            padding: var(--space-4) var(--space-8);
+            border-radius: var(--radius-lg);
+            border: none;
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: var(--text-base);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            text-decoration: none;
+        }
+
+        .btn-hero-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: var(--color-white);
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-hero-secondary {
+            background: transparent;
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-600);
+        }
+
+        .btn-hero-secondary:hover {
+            background: var(--color-gray-900);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        @media (max-width: 768px) {
+            .navbar-menu {
+                display: none;
+            }
+
+            .navbar-toggle {
+                display: block;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section-title {
+                font-size: var(--text-3xl);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .categories-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: revealAnimation 0.6s ease-out forwards;
+        }
+
+        @keyframes revealAnimation {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="navbar-container">
+            <a href="/NEXAR/" class="navbar-logo">
+                <svg class="navbar-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 2L32 10V26L18 34L4 26V10L18 2Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M18 8L26 13V23L18 28L10 23V13L18 8Z" fill="currentColor"/>
+                    <circle cx="18" cy="18" r="4" fill="#0A0A0A"/>
+                </svg>
+                <span>NEXAR</span>
+            </a>
+
+            <div class="navbar-menu">
+                <a href="/NEXAR/" class="navbar-link">Início</a>
+                <a href="#features" class="navbar-link">Fornecedores</a>
+                <a href="#categories" class="navbar-link">Categorias</a>
+                <a href="#pricing" class="navbar-link">Planos</a>
+                <a href="#contact" class="navbar-link">Contato</a>
+            </div>
+
+            <div class="navbar-actions">
+                <a href="/NEXAR/login" class="btn-hero btn-hero-secondary" style="padding: var(--space-2) var(--space-4); font-size: var(--text-sm);">Entrar</a>
+                <a href="/NEXAR/register" class="btn-hero btn-hero-primary" style="padding: var(--space-2) var(--space-4); font-size: var(--text-sm);">Cadastrar</a>
+            </div>
+
+            <button class="navbar-toggle" aria-label="Abrir menu" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <section class="hero" id="home">
+        <div class="hero-container">
+            <div class="hero-badge reveal">
+                <span class="hero-badge-dot"></span>
+                <span>Agora em Beta Público</span>
+            </div>
+
+            <h1 class="hero-title reveal">
+                Encontre os melhores fornecedores <br>
+                <span class="hero-title-gradient">para seu negócio</span>
+            </h1>
+
+            <p class="hero-description reveal">
+                A NEXAR conecta pequenas empresas a fabricantes, distribuidores, fornecedores e parceiros de serviço. Solicite cotações, compare ofertas e gerencie pedidos em um só lugar.
+            </p>
+
+            <div class="hero-actions reveal">
+                <a href="/NEXAR/register" class="btn-hero btn-hero-primary">
+                    Criar Conta Gratuitamente
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+                <a href="#features" class="btn-hero btn-hero-secondary">
+                    Procurar Fornecedores
+                </a>
+            </div>
+
+            <div class="hero-stats reveal">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">15K+</div>
+                    <div class="hero-stat-label">Fornecedores</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">3.2K</div>
+                    <div class="hero-stat-label">Solicitações de Cotação</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">92%</div>
+                    <div class="hero-stat-label">Avaliação dos Fornecedores</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="search-section">
+        <div class="search-container">
+            <div class="search-header reveal">
+                <h2>Busque fornecedores, produtos e serviços</h2>
+                <p>Busque fornecedores verificados por categoria, localização, avaliação, produtos e serviços.</p>
+            </div>
+
+            <form class="search-form reveal">
+                <div class="search-input-group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" placeholder="Buscar por fornecedor, categoria, produto ou serviço..." required>
+                </div>
+                <button type="submit" class="btn-hero btn-hero-primary" style="white-space: nowrap;">
+                    Buscar
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <section class="categories-section" id="categories">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-tag">Categorias</span>
+                <h2 class="section-title">Navegue por Categorias de Fornecedores</h2>
+                <p class="section-description">Explore categorias de fabricantes, distribuidores, logística e serviços empresariais.</p>
+            </div>
+
+            <div class="categories-grid">
+                <div class="category-card reveal">
+                    <div class="category-icon">🏭</div>
+                    <div class="category-name">Manufatura</div>
+                    <div class="category-count">2.450 fornecedores</div>
+                </div>
+                <div class="category-card reveal">
+                    <div class="category-icon">📦</div>
+                    <div class="category-name">Logística</div>
+                    <div class="category-count">1.890 fornecedores</div>
+                </div>
+                <div class="category-card reveal">
+                    <div class="category-icon">🛠️</div>
+                    <div class="category-name">Equipamentos</div>
+                    <div class="category-count">1.650 fornecedores</div>
+                </div>
+                <div class="category-card reveal">
+                    <div class="category-icon">🏬</div>
+                    <div class="category-name">Distribuição</div>
+                    <div class="category-count">1.200 fornecedores</div>
+                </div>
+                <div class="category-card reveal">
+                    <div class="category-icon">💼</div>
+                    <div class="category-name">Serviços Empresariais</div>
+                    <div class="category-count">980 fornecedores</div>
+                </div>
+                <div class="category-card reveal">
+                    <div class="category-icon">⚙️</div>
+                    <div class="category-name">Suprimentos Industriais</div>
+                    <div class="category-count">1.340 fornecedores</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="providers-section">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-tag">Fornecedores em Destaque</span>
+                <h2 class="section-title">Conecte-se com Fornecedores Confiáveis</h2>
+                <p class="section-description">Descubra fornecedores e parceiros verificados prontos para apoiar seu negócios com produtos, serviços e logística.</p>
+            </div>
+
+            <div class="providers-grid">
+                <div class="provider-card reveal">
+                    <div class="provider-header">
+                        <div class="provider-avatar">SK</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Sarah Kim</div>
+                            <div class="provider-title">Desenvolvedora Full Stack</div>
+                        </div>
+                        <div class="provider-rating">
+                            ⭐ 4.9
+                        </div>
+                    </div>
+                    <p class="provider-description">Especialista em React, Node.js e arquiteturas em nuvem. Especializada em construir aplicações web escaláveis com stacks de tecnologia modernos.</p>
+                    <div class="provider-skills">
+                        <span class="skill-tag">React</span>
+                        <span class="skill-tag">Node.js</span>
+                        <span class="skill-tag">AWS</span>
+                        <span class="skill-tag">TypeScript</span>
+                    </div>
+                    <div class="provider-footer">
+                        <div class="provider-rate">$85/hr</div>
+                        <button class="provider-btn">Contratar</button>
+                    </div>
+                </div>
+
+                <div class="provider-card reveal">
+                    <div class="provider-header">
+                        <div class="provider-avatar">MR</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Marcus Rodriguez</div>
+                            <div class="provider-title">Designer UI/UX</div>
+                        </div>
+                        <div class="provider-rating">
+                            ⭐ 4.95
+                        </div>
+                    </div>
+                    <p class="provider-description">Designer criativo com 8+ anos de experiência. Cria belas experiências digitais centradas no usuário que geram engajamento.</p>
+                    <div class="provider-skills">
+                        <span class="skill-tag">Figma</span>
+                        <span class="skill-tag">Adobe XD</span>
+                        <span class="skill-tag">Pesquisa de Usuário</span>
+                        <span class="skill-tag">Prototipagem</span>
+                    </div>
+                    <div class="provider-footer">
+                        <div class="provider-rate">$75/hr</div>
+                        <button class="provider-btn">Contratar</button>
+                    </div>
+                </div>
+
+                <div class="provider-card reveal">
+                    <div class="provider-header">
+                        <div class="provider-avatar">EW</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Emily Watson</div>
+                            <div class="provider-title">Especialista em Marketing Digital</div>
+                        </div>
+                        <div class="provider-rating">
+                            ⭐ 4.88
+                        </div>
+                    </div>
+                    <p class="provider-description">Marqueteira focada em crescimento, especializando-se em mídias sociais, SEO e estratégias de conteúdo. Histórico comprovado de aumento de ROI.</p>
+                    <div class="provider-skills">
+                        <span class="skill-tag">SEO</span>
+                        <span class="skill-tag">Redes Sociais</span>
+                        <span class="skill-tag">Analytics</span>
+                        <span class="skill-tag">Estratégia</span>
+                    </div>
+                    <div class="provider-footer">
+                        <div class="provider-rate">$65/hr</div>
+                        <button class="provider-btn">Contratar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-container">
+                <div class="stat-item reveal">
+                    <div class="stat-number">15K+</div>
+                    <div class="stat-label">Fornecedores Registrados</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-number">3.2K</div>
+                    <div class="stat-label">Solicitações de Cotação</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-number">92%</div>
+                    <div class="stat-label">Avaliação dos Fornecedores</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-number">24h</div>
+                    <div class="stat-label">Tempo Médio de Resposta</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-tag">Recursos</span>
+                <h2 class="section-title">Projetado para Descoberta de Fornecedores</h2>
+                <p class="section-description">Um marketplace empresarial feito para ajudar empreendedores a encontrar fornecedores, solicitar cotações, comparar ofertas e gerenciar pedidos.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Fornecedores Verificados</div>
+                    <p class="feature-description">Cada perfil de fornecedor é verificado para que você possa contratar fabricantes e distribuidores confiáveis.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Solicitações de Cotação</div>
+                    <p class="feature-description">Publique uma solicitação e convide vários fornecedores para enviar cotações competitivas.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Comparação de Fornecedores</div>
+                    <p class="feature-description">Compare ofertas, avalie classificações e escolha o melhor para as necessidades do seu negócio.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Gerenciamento de Pedidos</div>
+                    <p class="feature-description">Acompanhe seus pedidos desde a aceitação da cotação até a entrega.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Comunicação com Fornecedores</div>
+                    <p class="feature-description">Mantenha-se conectado com fornecedores diretamente pela plataforma para esclarecer cotações e pedidos.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="feature-title">Insights de Compras</div>
+                    <p class="feature-description">Monitore atividade de cotações, status de pedidos e desempenho dos fornecedores em um único painel.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="how-it-works">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-tag">Como Funciona</span>
+                <h2 class="section-title">Simples e Poderoso</h2>
+                <p class="section-description">Começar é fácil. Encontre fornecedores, solicite cotações e gerencie pedidos em três passos simples.</p>
+                <div class="step-card reveal">
+                    <div class="step-number">01</div>
+                    <div class="step-title">Crie Seu Perfil de Comprador</div>
+                    <p class="step-description">Cadastre-se e descreva suas necessidades de negócio, preferências de compra e requisitos de fornecedor.</p>
+                </div>
+
+                <div class="step-card reveal">
+                    <div class="step-number">02</div>
+                    <div class="step-title">Solicite Cotações</div>
+                    <p class="step-description">Publique um pedido e convide vários fornecedores aprovados a enviar propostas para sua encomenda.</p>
+                </div>
+
+                <div class="step-card reveal">
+                    <div class="step-number">03</div>
+                    <div class="step-title">Compare e Faça o Pedido</div>
+                    <p class="step-description">Revise ofertas, aceite a melhor cotação e acompanhe seu pedido da produção à entrega.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="testimonials">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-tag">Depoimentos</span>
+                <h2 class="section-title">Amado por Milhares</h2>
+                <p class="section-description">Não acredite apenas em nossas palavras. Veja o que nossa comunidade de clientes e fornecedores diz.</p>
+            </div>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card reveal">
+                    <div class="testimonial-content">
+                        <div class="testimonial-stars">
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                        </div>
+                        <p class="testimonial-quote">A NEXAR transformou a forma como encontramos fornecedores. Recebemos várias cotações competitivas e escolhemos um parceiro que atendeu o cronograma e o padrão de qualidade.</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">SC</div>
+                        <div class="author-info">
+                            <h4>Sarah Chen</h4>
+                            <p>CTO at TechFlow</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card reveal">
+                    <div class="testimonial-content">
+                        <div class="testimonial-stars">
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                        </div>
+                        <p class="testimonial-quote">Como pequeno empresário, a NEXAR me ajudou a encontrar parceiros de fabricação confiáveis e comparar cotações sem o pesado trabalho de compras.</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MR</div>
+                        <div class="author-info">
+                            <h4>Marcus Rodriguez</h4>
+                            <p>Senior UI/UX Designer</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card reveal">
+                    <div class="testimonial-content">
+                        <div class="testimonial-stars">
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                            <span class="star">⭐</span>
+                        </div>
+                        <p class="testimonial-quote">Já tentamos muitos fornecedores, mas a NEXAR tornou fácil comparar ofertas e escolher o parceiro certo para nosso pedido.</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">EW</div>
+                        <div class="author-info">
+                            <h4>Emily Watson</h4>
+                            <p>Head of Operations at StartupLab</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="contact">
+        <div class="container">
+            <div class="cta-content reveal">
+                <h2 class="cta-title">Pronto para Escalar Sua Cadeia de Suprimentos?</h2>
+                <p class="cta-description">
+                    Conecte-se com fornecedores, solicite cotações, compare ofertas e gerencie seus pedidos em uma só plataforma.
+                </p>
+                <div class="cta-buttons">
+                    <a href="/NEXAR/register" class="btn-cta btn-cta-primary">
+                        Começar Grátis
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                    <button type="button" class="btn-cta btn-cta-secondary" disabled>
+                        Fale com Vendas
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/NEXAR/" class="footer-logo">
+                        <svg class="footer-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 2L32 10V26L18 34L4 26V10L18 2Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <path d="M18 8L26 13V23L18 28L10 23V13L18 8Z" fill="currentColor"/>
+                            <circle cx="18" cy="18" r="4" fill="#0A0A0A"/>
+                        </svg>
+                        <span>NEXAR</span>
+                    </a>
+                    <p class="footer-description">
+                        A plataforma moderna que conecta pequenas empresas a fornecedores, fabricantes e distribuidores verificados. Contrate com confiança, cotação inteligente e cresça com parceiros confiáveis.
+                    </p>
+                    <div class="footer-social">
+                        <a href="https://twitter.com/nexar" class="footer-social-link" aria-label="Twitter" target="_blank" rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                            </svg>
+                        </a>
+                        <a href="https://github.com/nexar" class="footer-social-link" aria-label="GitHub" target="_blank" rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                            </svg>
+                        </a>
+                        <a href="https://linkedin.com/company/nexar" class="footer-social-link" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                                <rect x="2" y="9" width="4" height="12"></rect>
+                                <circle cx="4" cy="4" r="2"></circle>
+                            </svg>
+                        </a>
+                        <a href="https://discord.gg/nexar" class="footer-social-link" aria-label="Discord" target="_blank" rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="12" r="1"></circle>
+                                <circle cx="15" cy="12" r="1"></circle>
+                                <path d="M7.5 7.5c3.5-1 5.5-1 9 0 1.5 2 2.5 3.5 2.5 5.5a6 6 0 0 1-6 6c-1.5 0-2.5-.5-3-1-.5.5-1.5 1-3 1a6 6 0 0 1-6-6c0-2 1-3.5 2.5-5.5z"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Produto</h4>
+                    <nav class="footer-links">
+                        <a href="#features" class="footer-link">Recursos</a>
+                        <a href="#pricing" class="footer-link">Preços</a>
+                        <a href="/integrations" class="footer-link">Integrações</a>
+                        <a href="/developers" class="footer-link">API</a>
+                        <a href="/changelog" class="footer-link">Registro de Mudanças</a>
+                    </nav>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Empresa</h4>
+                    <nav class="footer-links">
+                        <a href="/about" class="footer-link">Sobre</a>
+                        <a href="/blog" class="footer-link">Blog</a>
+                        <a href="/careers" class="footer-link">Carreiras</a>
+                        <a href="/press" class="footer-link">Kit de Imprensa</a>
+                        <a href="/contact" class="footer-link">Contato</a>
+                    </nav>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Recursos</h4>
+                    <nav class="footer-links">
+                        <a href="/docs" class="footer-link">Documentação</a>
+                        <a href="/help" class="footer-link">Central de Ajuda</a>
+                        <a href="/community" class="footer-link">Comunidade</a>
+                        <a href="/templates" class="footer-link">Modelos</a>
+                        <a href="/status" class="footer-link">Status</a>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">
+                    &copy; 2024 NEXAR. All rights reserved.
+                </p>
+                <nav class="footer-legal">
+                    <a href="/privacy" class="footer-legal-link">Política de Privacidade</a>
+                    <a href="/terms" class="footer-legal-link">Termos de Serviço</a>
+                    <a href="/cookies" class="footer-legal-link">Política de Cookies</a>
+                </nav>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/public/js/app.js" defer></script>
+    <script src="/public/js/navbar.js" defer></script>
+    <script src="/public/js/animations.js" defer></script>
+
+    <script>
+        document.querySelectorAll('.reveal').forEach((element, index) => {
+            element.style.animationDelay = `${index * 0.1}s`;
+        });
+
+        const navbarToggle = document.querySelector('.navbar-toggle');
+        const navbarMenu = document.querySelector('.navbar-menu');
+        
+        if (navbarToggle) {
+            navbarToggle.addEventListener('click', () => {
+                navbarMenu.style.display = navbarMenu.style.display === 'flex' ? 'none' : 'flex';
+            });
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#' && href !== '#home') {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            });
+        });
+
+        const searchForm = document.querySelector('.search-form');
+        if (searchForm) {
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Busca temporariamente desativada.
+            });
+        }
+    </script>
+</body>
+</html>

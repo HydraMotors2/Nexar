@@ -1,0 +1,29 @@
+{
+  "name": "nexar",
+  "version": "1.0.0",
+  "description": "NEXAR - Modern SaaS Platform connecting clients and providers",
+  "main": "index.php",
+  "scripts": {
+    "dev": "live-server public",
+    "build:css": "postcss src/css/*.css -u autoprefixer -o public/css/",
+    "build:ts": "tsc",
+    "build": "npm run build:css && npm run build:ts",
+    "watch": "concurrently \"npm run build:css -- --watch\" \"npm run build:ts -- --watch\""
+  },
+  "keywords": [
+    "saas",
+    "nexar",
+    "platform",
+    "clients",
+    "providers"
+  ],
+  "author": "NEXAR Team",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.32",
+    "postcss-cli": "^10.1.0",
+    "typescript": "^5.3.3"
+  }
+}
