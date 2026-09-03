@@ -66,6 +66,7 @@ class APIRouter {
     }
 
     private function registerRoutes(): void {
+        $this->routes['POST']['/cnpj/validate'] = ['CnpjController', 'validate'];
         $this->routes['POST']['/auth/register'] = ['AuthController', 'register'];
         $this->routes['POST']['/auth/login'] = ['AuthController', 'login'];
         $this->routes['POST']['/auth/logout'] = ['AuthController', 'logout', 'auth'];

@@ -18,35 +18,6 @@ function generateUuid(): string {
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 }
 
-function validateCnpj(string $cnpj): bool {
-    $digits = preg_replace('/\D+/', '', $cnpj);
-    if (strlen($digits) !== 14) {
-        return false;
-    }
-
-    if (preg_match('/^(\d)\1{13}$/', $digits)) {
-        return false;
-    }
-
-    for ($t = 12; $t < 14; $t++) {
-        $sum = 0;
-        $factor = $t - 7;
-        for ($i = 0; $i < $t; $i++) {
-            $sum += (int) $digits[$i] * $factor;
-            $factor = $factor === 2 ? 9 : $factor - 1;
-        }
-        $remainder = ($sum * 10) % 11;
-        if ($remainder === 10) {
-            $remainder = 0;
-        }
-        if ($digits[$t] != $remainder) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 // Initialize registration session
 if (!isset($_SESSION['registration'])) {
     $_SESSION['registration'] = ['account_type' => null, 'form_data' => [], 'step' => 1];
@@ -158,8 +129,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($data['cnpj'] === '') {
             $errors['cnpj'] = 'CNPJ é obrigatório.';
-        } elseif (!validateCnpj($data['cnpj'])) {
-            $errors['cnpj'] = 'CNPJ inválido.';
+        } else {
+            $cnpjLookup = lookupCnpj($data['cnpj']);
+            if (!$cnpjLookup['valid']) {
+                $errors['cnpj'] = $cnpjLookup['error'];
+            } elseif (!$cnpjLookup['exists']) {
+                $errors['cnpj'] = $cnpjLookup['error'] ?? 'CNPJ não encontrado na BrasilAPI.';
+            } else {
+                $data['cnpj'] = $cnpjLookup['digits'];
+            }
         }
 
         if ($accountType === 'entrepreneur') {
@@ -315,6 +293,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $step = $_SESSION['registration']['step'] ?? 1;
 $values = array_map('safe', $formData + $_POST);
+if (isset($values['cnpj'])) {
+    $values['cnpj'] = safe(normalizeCnpj((string)$values['cnpj']));
+}
 ?>
 
 <!DOCTYPE html>
@@ -338,12 +319,19 @@ $values = array_map('safe', $formData + $_POST);
             align-items: flex-start;
             justify-content: center;
             padding: 32px 16px 48px;
+            overflow-x: hidden;
         }
         .register-wrapper {
             width: 100%;
             max-width: 620px;
             margin: 0 auto;
             padding: 0 16px;
+            box-sizing: border-box;
+        }
+        .register-wrapper *,
+        .register-wrapper *::before,
+        .register-wrapper *::after {
+            box-sizing: border-box;
         }
         .register-branding {
             display: flex;
@@ -360,6 +348,7 @@ $values = array_map('safe', $formData + $_POST);
             letter-spacing: 0.14em;
             text-transform: uppercase;
             margin: 0;
+            overflow-wrap: anywhere;
         }
         .brand-subtitle {
             font-size: 14px;
@@ -367,6 +356,7 @@ $values = array_map('safe', $formData + $_POST);
             max-width: 620px;
             line-height: 1.7;
             margin: 0;
+            overflow-wrap: anywhere;
         }
         .register-card {
             background: rgba(10, 10, 12, 0.96);
@@ -397,6 +387,8 @@ $values = array_map('safe', $formData + $_POST);
             font-weight: 700;
             color: #fff;
             margin: 0;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
         }
         .change-account-type-link {
             font-size: 13px;
@@ -461,6 +453,8 @@ $values = array_map('safe', $formData + $_POST);
             text-align: center;
             font-size: 13px;
             font-weight: 700;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
         }
         .wizard-step.active {
             background: #ff6b35;
@@ -481,15 +475,18 @@ $values = array_map('safe', $formData + $_POST);
             font-weight: 700;
             color: #ffffff;
             margin: 0;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
         }
         .section-description {
             color: #c7c7c7;
             font-size: 13px;
             line-height: 1.7;
             margin: 0;
+            overflow-wrap: anywhere;
         }
         .form-row {
-            grid-template-columns: repeat(2, minmax(220px, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .form-row.full {
             grid-template-columns: 1fr;
@@ -503,6 +500,8 @@ $values = array_map('safe', $formData + $_POST);
             color: #f1f1f1;
             font-size: 14px;
             font-weight: 500;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
         }
         .form-input,
         .form-select,
@@ -515,11 +514,32 @@ $values = array_map('safe', $formData + $_POST);
             color: #fff;
             font-size: 14px;
             font-family: inherit;
+            line-height: 1.4;
+            min-width: 0;
+            overflow-wrap: anywhere;
             transition: border .2s ease, box-shadow .2s ease;
         }
         .form-textarea {
             min-height: 130px;
             resize: vertical;
+        }
+        .cnpj-counter,
+        .cnpj-debug-log {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .cnpj-counter {
+            color: rgba(255, 255, 255, 0.58);
+            text-align: right;
+            margin-top: -4px;
+        }
+        .cnpj-debug-log {
+            color: #ffb4ab;
+            min-height: 17px;
+            margin-top: -6px;
+        }
+        .cnpj-debug-log.warning {
+            color: #ffd166;
         }
         .form-input:focus,
         .form-select:focus,
@@ -590,9 +610,14 @@ $values = array_map('safe', $formData + $_POST);
             justify-content: center;
             gap: 8px;
             padding: 14px 18px;
+            min-height: 48px;
+            min-width: 0;
             border-radius: 16px;
             border: none;
             font-weight: 700;
+            line-height: 1.35;
+            text-align: center;
+            overflow-wrap: anywhere;
             cursor: pointer;
             transition: transform .2s ease, background .2s ease;
         }
@@ -624,6 +649,8 @@ $values = array_map('safe', $formData + $_POST);
             gap: 10px;
             cursor: pointer;
             color: #c7c7c7;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
         }
         .checkbox-wrapper input {
             accent-color: #ff6b35;
@@ -634,11 +661,15 @@ $values = array_map('safe', $formData + $_POST);
             background: rgba(255, 107, 53, 0.13);
             border: 1px solid rgba(255, 107, 53, 0.22);
             color: #ffd5c2;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
         }
         .field-error {
             color: #ffb8a3;
             font-size: 13px;
             min-height: 18px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
         }
         /* Confirmation Modal */
         .modal-overlay {
@@ -671,12 +702,15 @@ $values = array_map('safe', $formData + $_POST);
             font-weight: 700;
             color: #fff;
             margin: 0 0 12px 0;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
         }
         .modal-text {
             color: #d1d1d1;
             font-size: 14px;
             line-height: 1.7;
             margin-bottom: 24px;
+            overflow-wrap: anywhere;
         }
         .modal-actions {
             display: grid;
@@ -719,6 +753,50 @@ $values = array_map('safe', $formData + $_POST);
             .register-header {
                 flex-direction: column;
                 gap: 12px;
+            }
+            .register-header > div,
+            .register-header-actions,
+            .register-header-actions .btn-action {
+                width: 100%;
+            }
+            .register-header-actions .btn-action {
+                white-space: normal;
+            }
+            .account-type-card {
+                padding: 24px;
+            }
+            .account-type-card h2 {
+                font-size: 1.45rem;
+                line-height: 1.25;
+            }
+            .wizard-step {
+                border-radius: 16px;
+            }
+            .modal-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 420px) {
+            body {
+                padding: 20px 8px 32px;
+            }
+            .register-wrapper {
+                padding: 0 8px;
+            }
+            .register-card {
+                padding: 18px;
+                border-radius: 18px;
+            }
+            .brand-title {
+                font-size: 24px;
+            }
+            .register-title {
+                font-size: 21px;
+            }
+            .btn-action,
+            .modal-btn {
+                padding-left: 14px;
+                padding-right: 14px;
             }
         }
     </style>
@@ -794,7 +872,9 @@ $values = array_map('safe', $formData + $_POST);
                             </div>
                             <div class="form-group">
                                 <label class="form-label">CNPJ <span class="required">*</span></label>
-                                <input type="text" name="cnpj" class="form-input" placeholder="00.000.000/0000-00" value="<?php echo $values['cnpj'] ?? ''; ?>">
+                                <input type="text" name="cnpj" class="form-input cnpj-input" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
+                                <div class="cnpj-counter" data-cnpj-counter>0/14</div>
+                                <div class="cnpj-debug-log" data-cnpj-debug role="status" aria-live="polite"><?php echo safe($errors['cnpj'] ?? ''); ?></div>
                                 <div class="field-error"><?php echo $errors['cnpj'] ?? ''; ?></div>
                             </div>
                         </div>
@@ -837,7 +917,9 @@ $values = array_map('safe', $formData + $_POST);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label class="form-label">CNPJ <span class="required">*</span></label>
-                                    <input type="text" name="cnpj" class="form-input" placeholder="00.000.000/0000-00" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
+                                    <input type="text" name="cnpj" class="form-input cnpj-input" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
+                                    <div class="cnpj-counter" data-cnpj-counter>0/14</div>
+                                    <div class="cnpj-debug-log" data-cnpj-debug role="status" aria-live="polite"><?php echo safe($errors['cnpj'] ?? ''); ?></div>
                                     <div class="field-error"><?php echo $errors['cnpj'] ?? ''; ?></div>
                                 </div>
                                 <div class="form-group">
@@ -949,7 +1031,9 @@ $values = array_map('safe', $formData + $_POST);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label class="form-label">CNPJ <span class="required">*</span></label>
-                                    <input type="text" name="cnpj" class="form-input" placeholder="00.000.000/0000-00" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
+                                    <input type="text" name="cnpj" class="form-input cnpj-input" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
+                                    <div class="cnpj-counter" data-cnpj-counter>0/14</div>
+                                    <div class="cnpj-debug-log" data-cnpj-debug role="status" aria-live="polite"><?php echo safe($errors['cnpj'] ?? ''); ?></div>
                                     <div class="field-error"><?php echo $errors['cnpj'] ?? ''; ?></div>
                                 </div>
                                 <div class="form-group">
@@ -1090,6 +1174,226 @@ $values = array_map('safe', $formData + $_POST);
         const registerForm = document.getElementById('registerForm');
         const confirmModal = document.getElementById('confirmModal');
         const initialStep = <?php echo json_encode($step); ?>;
+        const cnpjInputs = document.querySelectorAll('.cnpj-input');
+
+        function isValidCnpjClient(value) {
+            const digits = value.replace(/\D/g, '');
+            if (digits.length !== 14 || /^(\d)\1{13}$/.test(digits)) return false;
+
+            const weights = [
+                [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+                [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+            ];
+
+            return weights.every((roundWeights, round) => {
+                const length = 12 + round;
+                const sum = roundWeights.reduce((total, weight, index) => {
+                    return total + Number(digits[index]) * weight;
+                }, 0);
+                const remainder = sum % 11;
+                const checkDigit = remainder < 2 ? 0 : 11 - remainder;
+                return Number(digits[length]) === checkDigit;
+            });
+        }
+
+        function formatCnpjClient(value) {
+            const digits = value.replace(/\D/g, '').slice(0, 14);
+            return digits
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+                .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+        }
+
+        const cnpjRequestIds = new WeakMap();
+        const cnpjStatuses = new WeakMap();
+        const cnpjAbortControllers = new WeakMap();
+        const cnpjRetryAttempts = new WeakMap();
+        const cnpjRetryTimers = new WeakMap();
+        const cnpjValidationCacheKey = 'nexar_cnpj_validation_';
+
+        function getCachedCnpjResult(digits) {
+            try {
+                const cached = sessionStorage.getItem(cnpjValidationCacheKey + digits);
+                return cached ? JSON.parse(cached) : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function cacheCnpjResult(digits, data) {
+            try {
+                sessionStorage.setItem(cnpjValidationCacheKey + digits, JSON.stringify(data));
+            } catch (error) {
+                // O cache é opcional; a confirmação atual continua em memória.
+            }
+        }
+
+        async function checkCnpjExists(input, digits) {
+            const currentStatus = cnpjStatuses.get(input);
+            if (currentStatus?.digits === digits && currentStatus.validated) return true;
+
+            const cachedResult = getCachedCnpjResult(digits);
+            if (cachedResult?.validated === true) {
+                cnpjStatuses.set(input, cachedResult);
+                input.readOnly = true;
+                return true;
+            }
+
+            const requestId = (cnpjRequestIds.get(input) || 0) + 1;
+            cnpjRequestIds.set(input, requestId);
+            cnpjStatuses.set(input, { digits, exists: false, checking: false });
+            const debugLog = input.parentElement.querySelector('[data-cnpj-debug]');
+            if (!debugLog || digits.length !== 14 || !isValidCnpjClient(digits)) return false;
+
+            const previousController = cnpjAbortControllers.get(input);
+            if (previousController) previousController.abort();
+            const controller = new AbortController();
+            cnpjAbortControllers.set(input, controller);
+
+            cnpjStatuses.set(input, { digits, exists: false, checking: true });
+            debugLog.classList.remove('warning');
+            debugLog.textContent = 'Consultando CNPJ na BrasilAPI...';
+            try {
+                const response = await fetch('/NEXAR/api/cnpj/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cnpj: digits }),
+                    signal: controller.signal,
+                });
+                const payload = await response.json();
+
+                if (cnpjRequestIds.get(input) !== requestId) return false;
+                const apiConfirmed = response.ok
+                    && payload.success
+                    && payload.data?.exists === true
+                    && (payload.data?.api_status == null
+                        || (payload.data.api_status >= 200 && payload.data.api_status < 300));
+                if (!apiConfirmed) {
+                    cnpjStatuses.set(input, { digits, exists: false, checking: false });
+                    debugLog.classList.add('warning');
+
+                    if (payload.data?.api_status === 429) {
+                        const attempt = (cnpjRetryAttempts.get(input) || 0) + 1;
+                        cnpjRetryAttempts.set(input, attempt);
+                        const wait = Math.min(2000 * attempt, 10000);
+                        debugLog.textContent = `Muitas consultas seguidas — tentando de novo em ${Math.round(wait / 1000)}s...`;
+                        setTimeout(() => {
+                            if (cnpjRequestIds.get(input) === requestId
+                                && input.value.replace(/\D/g, '') === digits) {
+                                checkCnpjExists(input, digits);
+                            }
+                        }, wait);
+                    } else if (payload.data?.api_status === 404) {
+                        cnpjRetryAttempts.delete(input);
+                        debugLog.textContent = 'Aviso: este CNPJ não existe na BrasilAPI.';
+                    } else {
+                        cnpjRetryAttempts.delete(input);
+                        debugLog.textContent = 'Erro: a BrasilAPI não confirmou este CNPJ.';
+                    }
+                    return false;
+                }
+
+                cnpjRetryAttempts.delete(input);
+                const validatedResult = {
+                    digits,
+                    exists: true,
+                    checking: false,
+                    validated: true,
+                    apiResult: payload.data,
+                };
+                cnpjStatuses.set(input, validatedResult);
+                cacheCnpjResult(digits, validatedResult);
+                input.readOnly = true;
+                debugLog.classList.remove('warning');
+                debugLog.textContent = '';
+                return true;
+            } catch (error) {
+                if (error.name === 'AbortError') return false;
+                if (cnpjRequestIds.get(input) === requestId) {
+                    cnpjStatuses.set(input, { digits, exists: false, checking: false });
+                    debugLog.textContent = 'Erro: não foi possível consultar a BrasilAPI.';
+                }
+                return false;
+            }
+        }
+
+        async function ensureCnpjExists(input) {
+            const digits = input.value.replace(/\D/g, '');
+            const status = cnpjStatuses.get(input);
+
+            if (status?.digits === digits && status.exists) return true;
+            if (status?.digits === digits && status.checking) {
+                return new Promise((resolve) => {
+                    const waitForResult = () => {
+                        const currentStatus = cnpjStatuses.get(input);
+                        if (currentStatus?.digits !== digits || !currentStatus?.checking) {
+                            resolve(Boolean(currentStatus?.exists && currentStatus.digits === digits));
+                            return;
+                        }
+                        window.setTimeout(waitForResult, 100);
+                    };
+                    waitForResult();
+                });
+            }
+
+            return checkCnpjExists(input, digits);
+        }
+
+        function updateCnpjFeedback(input) {
+            const digits = input.value.replace(/\D/g, '');
+            const counter = input.parentElement.querySelector('[data-cnpj-counter]');
+            const debugLog = input.parentElement.querySelector('[data-cnpj-debug]');
+
+            if (counter) counter.textContent = `${digits.length}/14`;
+            if (!debugLog) return;
+
+            if (digits.length === 0) {
+                debugLog.textContent = '';
+            } else if (digits.length < 14) {
+                debugLog.textContent = `Erro: CNPJ incompleto (${digits.length}/14).`;
+            } else if (!isValidCnpjClient(digits)) {
+                debugLog.textContent = 'Erro: dígitos verificadores inválidos.';
+            } else {
+                debugLog.textContent = '';
+            }
+        }
+
+        cnpjInputs.forEach((input) => {
+            input.value = formatCnpjClient(input.value);
+            updateCnpjFeedback(input);
+            const initialDigits = input.value.replace(/\D/g, '');
+            const cachedResult = initialDigits.length === 14
+                ? getCachedCnpjResult(initialDigits)
+                : null;
+            if (cachedResult?.validated === true) {
+                cnpjStatuses.set(input, cachedResult);
+                input.readOnly = true;
+            }
+
+            input.addEventListener('input', () => {
+                if (input.readOnly) return;
+                const digits = input.value.replace(/\D/g, '').slice(0, 14);
+                input.value = formatCnpjClient(digits);
+                input.setCustomValidity('');
+                updateCnpjFeedback(input);
+            });
+
+            input.addEventListener('blur', () => {
+                if (input.readOnly) return;
+                const digits = input.value.replace(/\D/g, '');
+                if (digits.length === 14 && isValidCnpjClient(digits)) {
+                    checkCnpjExists(input, digits);
+                }
+            });
+            input.addEventListener('paste', (event) => {
+                if (input.readOnly) return;
+                event.preventDefault();
+                const pastedText = event.clipboardData?.getData('text') || '';
+                input.value = pastedText.replace(/\D/g, '').slice(0, 14);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
 
         // ===== ACCOUNT TYPE SELECTION LOGIC =====
         const accountTypeRadios = document.querySelectorAll('input[type="radio"][name="account_type"]');
@@ -1169,7 +1473,7 @@ $values = array_map('safe', $formData + $_POST);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function nextStep(targetStep) {
+        async function nextStep(targetStep) {
             const visibleSection = sections.find(section => section.style.display === 'block');
             if (visibleSection) {
                 const invalidField = Array.from(visibleSection.querySelectorAll('input, select, textarea'))
@@ -1179,6 +1483,26 @@ $values = array_map('safe', $formData + $_POST);
                     invalidField.focus();
                     invalidField.reportValidity?.();
                     alert('Por favor, preencha todos os campos obrigatórios antes de avançar.');
+                    return;
+                }
+
+                const cnpjInput = visibleSection.querySelector('.cnpj-input');
+                if (cnpjInput && !isValidCnpjClient(cnpjInput.value)) {
+                    const debugLog = cnpjInput.parentElement.querySelector('[data-cnpj-debug]');
+                    if (debugLog) debugLog.textContent = 'Erro: CNPJ inválido. Confira os 14 dígitos.';
+                    cnpjInput.setCustomValidity('Informe um CNPJ válido com 14 dígitos.');
+                    cnpjInput.focus();
+                    cnpjInput.reportValidity?.();
+                    return;
+                }
+
+                if (cnpjInput && !(await ensureCnpjExists(cnpjInput))) {
+                    const debugLog = cnpjInput.parentElement.querySelector('[data-cnpj-debug]');
+                    if (debugLog) {
+                        debugLog.classList.add('warning');
+                        debugLog.textContent = 'Aviso: confirme um CNPJ existente na BrasilAPI para continuar.';
+                    }
+                    cnpjInput.focus();
                     return;
                 }
             }
