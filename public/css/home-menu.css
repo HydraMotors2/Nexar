@@ -1,0 +1,16 @@
+.logged-in-menu { width: min(1120px, 100%); margin: 0 auto; padding: 24px 24px 0; }
+.logged-in-menu-card { margin-bottom: 32px; padding: 28px 32px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; box-shadow: 0 24px 60px rgba(0,0,0,.12); }
+.logged-in-menu-card h2 { margin-bottom: 10px; color: var(--color-white); font-size: 1.9rem; }
+.logged-in-menu-card p { margin-bottom: 18px; color: var(--color-gray-400); }
+.home-menu-buttons { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; }
+.home-menu-button { display: inline-flex; align-items: center; justify-content: center; padding: 14px 18px; background: rgba(255,255,255,.06); border: 1px solid transparent; border-radius: 999px; color: var(--color-white); font-weight: 600; text-decoration: none; transition: all 180ms ease; }
+.home-menu-button:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.12); }
+.navbar-actions.logged-in { display: flex; align-items: center; gap: .75rem; }
+.mobile-navbar-actions { margin-top: var(--space-4); }
+.home-user-menu { width: min(1120px, 100%); margin: 0 auto; padding: 24px 24px 0; }
+.home-user-menu-card { margin-bottom: 20px; padding: 24px 28px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; box-shadow: 0 24px 60px rgba(0,0,0,.12); }
+.home-user-menu-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.home-user-menu-title { margin: 0 0 8px; color: #fff; font-size: 1.8rem; }
+.home-user-menu-description { margin: 0; color: rgba(255,255,255,.75); }
+.home-user-menu-links { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,auto)); gap: 10px; width: min(480px,100%); }
+.home-user-menu-link { padding: 12px 16px; background: rgba(255,255,255,.08); border-radius: 999px; color: #fff; font-weight: 600; text-align: center; text-decoration: none; }

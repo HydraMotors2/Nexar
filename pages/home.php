@@ -49,57 +49,6 @@ if ($loggedIn) {
 
     $displayName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
     $menuHtml = <<<HTML
-    <style>
-        .logged-in-menu {
-            width: min(1120px, 100%);
-            margin: 0 auto;
-            padding: 24px 24px 0;
-        }
-        .logged-in-menu-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 28px;
-            padding: 28px 32px;
-            margin-bottom: 32px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.12);
-        }
-        .logged-in-menu-card h2 {
-            font-size: 1.9rem;
-            margin-bottom: 10px;
-            color: var(--color-white);
-        }
-        .logged-in-menu-card p {
-            color: var(--color-gray-400);
-            margin-bottom: 18px;
-        }
-        .home-menu-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-        }
-        .home-menu-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 14px 18px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.06);
-            color: var(--color-white);
-            text-decoration: none;
-            font-weight: 600;
-            border: 1px solid transparent;
-            transition: all 180ms ease;
-        }
-        .home-menu-button:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.12);
-        }
-        .navbar-actions.logged-in {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-    </style>
     <div class="logged-in-menu">
         <div class="logged-in-menu-card">
             <h2>Bem-vindo de volta, {$displayName}!</h2>
@@ -143,7 +92,7 @@ HTML;
     // Substitui também os botões de ação da navbar móvel.
     $html = preg_replace(
         '~<div class="navbar-actions" style="margin-top: var\(--space-4\);">\s*<a href="/NEXAR/login"[^<]*>(?:Entrar|Login)</a>\s*<a href="/NEXAR/register"[^<]*>(?:Começar|Cadastrar|Create Account)</a>\s*</div>~i',
-        '<div class="navbar-actions logged-in" style="margin-top: var(--space-4);">'
+        '<div class="navbar-actions logged-in mobile-navbar-actions">'
         . '<a href="/NEXAR/my-suppliers" class="btn btn-secondary btn-sm w-full">Meus Fornecedores</a>'
         . '<a href="/NEXAR/my-orders" class="btn btn-primary btn-sm w-full">Meus Pedidos</a>'
         . '<a href="/NEXAR/profile" class="btn btn-secondary btn-sm w-full">Meu Perfil</a>'

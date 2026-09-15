@@ -132,3 +132,112 @@ function base_url(string $path = ''): string {
 function asset(string $path): string {
     return base_url('public/' . ltrim($path, '/'));
 }
+
+function normalizeCnpj(string $cnpj): string {
+    return preg_replace('/\D+/', '', $cnpj) ?? '';
+}
+
+function formatCnpj(string $cnpj): string {
+    $digits = normalizeCnpj($cnpj);
+    if (strlen($digits) !== 14) return $cnpj;
+
+    return substr($digits, 0, 2) . '.' . substr($digits, 2, 3) . '.'
+        . substr($digits, 5, 3) . '/' . substr($digits, 8, 4) . '-'
+        . substr($digits, 12, 2);
+}
+
+function isValidCnpj(string $cnpj): bool {
+    $digits = normalizeCnpj($cnpj);
+    if (strlen($digits) !== 14 || preg_match('/^(\d)\1{13}$/', $digits)) return false;
+
+    $weights = [
+        [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+        [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+    ];
+
+    foreach ($weights as $round => $roundWeights) {
+        $sum = 0;
+        $length = 12 + $round;
+        for ($index = 0; $index < $length; $index++) {
+            $sum += (int)$digits[$index] * $roundWeights[$index];
+        }
+        $remainder = $sum % 11;
+        $digit = $remainder < 2 ? 0 : 11 - $remainder;
+        if ((int)$digits[$length] !== $digit) return false;
+    }
+
+    return true;
+}
+
+function lookupCnpj(string $cnpj): array {
+    $digits = normalizeCnpj($cnpj);
+    $result = [
+        'valid' => isValidCnpj($digits),
+        'exists' => false,
+        'company_name' => null,
+        'error' => null,
+        'digits' => $digits,
+        'api_status' => null,
+        'api_response' => null,
+    ];
+
+    if (!$result['valid']) {
+        $result['error'] = 'Informe um CNPJ válido com 14 dígitos.';
+        return $result;
+    }
+
+    $url = 'https://brasilapi.com.br/api/cnpj/v1/' . rawurlencode($digits);
+    $response = false;
+    $statusCode = 0;
+
+    if (function_exists('curl_init')) {
+    $curl = curl_init($url);
+    curl_setopt_array($curl, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+    ]);
+    $response = curl_exec($curl);
+    $statusCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    if ($response === false) {
+        error_log('BrasilAPI cURL error: ' . curl_error($curl) . ' (errno ' . curl_errno($curl) . ')');
+    }
+
+    curl_close($curl);
+    } else {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 8,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\n",
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+        if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $matches)) {
+            $statusCode = (int)$matches[1];
+        }
+    }
+
+    $payload = is_string($response) ? json_decode($response, true) : null;
+    $result['api_status'] = $statusCode;
+    $result['api_response'] = is_array($payload) ? $payload : null;
+
+  if ($statusCode >= 200 && $statusCode < 300 && is_array($payload)) {
+    $result['exists'] = true;
+    $result['company_name'] = $payload['razao_social'] ?? $payload['nome_fantasia'] ?? null;
+    return $result;
+}
+
+if ($statusCode === 404) {
+    $result['error'] = 'CNPJ não encontrado na BrasilAPI.';
+} elseif ($statusCode === 0) {
+    $result['error'] = 'Não foi possível conectar à BrasilAPI. Verifique a conexão do servidor.';
+} else {
+    $result['error'] = 'Não foi possível consultar o CNPJ agora (status ' . $statusCode . '). Tente novamente.';
+}
+return $result;
+}

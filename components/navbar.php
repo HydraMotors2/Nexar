@@ -96,7 +96,7 @@ if (file_exists($authFile)) {
                 <?= htmlspecialchars($item['label']) ?>
             </a>
         <?php endforeach; ?>
-        <div class="navbar-actions" style="margin-top: var(--space-4);">
+        <div class="navbar-actions mobile-navbar-actions">
             <?php if ($loggedIn): ?>
                 <a href="/NEXAR/my-suppliers" class="btn btn-secondary btn-sm w-full">Meus Fornecedores</a>
                 <a href="/NEXAR/my-orders" class="btn btn-secondary btn-sm w-full">Meus Pedidos</a>

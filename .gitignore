@@ -10,7 +10,6 @@ vendor/
 # Build output
 public/js/*.js
 public/js/*.map
-public/css/*.css
 dist/
 build/
 

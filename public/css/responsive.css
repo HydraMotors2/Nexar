@@ -1,0 +1,18 @@
+@media (max-width: 900px) {
+    .navbar-menu { display: none; }
+    .navbar-toggle { display: inline-flex; }
+    .navbar-menu-mobile.is-open { display: grid; gap: var(--space-3); width: min(100%, 1400px); margin-inline: auto; padding: 0 1rem 1.25rem; }
+    .navbar-menu-mobile.is-open .navbar-link { padding: .6rem 0; }
+    .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .navbar-container { min-height: 64px; }
+    .navbar-actions { gap: var(--space-2); }
+    .navbar-actions > .btn { display: none; }
+    .navbar-user-dropdown { display: none; }
+    .search-form { flex-direction: column; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .auth-page { padding: var(--space-4); }
+    .auth-card { padding: var(--space-6); }
+    .form-options { align-items: flex-start; gap: var(--space-3); flex-direction: column; }
+}

@@ -44,10 +44,10 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/css/variables.css">
-    <link rel="stylesheet" href="/css/global.css">
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/variables.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/global.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/components.css">
+    <link rel="stylesheet" href="/NEXAR/public/css/animations.css">
     
     <style>
         /* Provider Profile Specific Styles */

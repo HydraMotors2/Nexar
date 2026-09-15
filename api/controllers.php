@@ -1,4 +1,31 @@
 <?php
+if (!class_exists('CnpjController')) {
+    class CnpjController {
+        public function validate(array $params): void {
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (!is_array($input) || !isset($input['cnpj']) || !is_string($input['cnpj'])) {
+                ApiResponse::validationError(['cnpj' => 'CNPJ is required']);
+            }
+
+            $cnpj = $input['cnpj'];
+            $digits = normalizeCnpj($cnpj);
+            $lookup = lookupCnpj($digits);
+
+            ApiResponse::success([
+                'valid' => $lookup['valid'],
+                'exists' => $lookup['exists'],
+                'digits' => $digits,
+                'formatted' => formatCnpj($cnpj),
+                'company_name' => $lookup['company_name'],
+                'error' => $lookup['error'],
+                'api_status' => $lookup['api_status'],
+                'api_response' => $lookup['api_response'],
+            ], 'CNPJ validation completed');
+        }
+    }
+}
+
 if (!class_exists('AuthController')) {
     class AuthController {
         public function register(array $params): void {
