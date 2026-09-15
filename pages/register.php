@@ -312,7 +312,8 @@ if (isset($values['cnpj'])) {
     <link rel="stylesheet" href="/NEXAR/public/css/global.css">
     <link rel="stylesheet" href="/NEXAR/public/css/components.css">
     <link rel="stylesheet" href="/NEXAR/public/css/animations.css">
-    <style>
+    <link rel="stylesheet" href="/NEXAR/public/css/register.css">
+    <!--
         body {
             min-height: 100vh;
             display: flex;
@@ -799,9 +800,9 @@ if (isset($values['cnpj'])) {
                 padding-right: 14px;
             }
         }
-    </style>
+    -->
 </head>
-<body class="bg-matte">
+<body class="bg-matte register-page">
     <div class="bg-animation" aria-hidden="true">
         <div class="bg-gradient-orb orb-1"></div>
         <div class="bg-gradient-orb orb-2"></div>
@@ -820,9 +821,11 @@ if (isset($values['cnpj'])) {
                         
                     <?php endif; ?>
                 </div>
-                <div class="register-header-actions">
-                    <a href="/NEXAR/" class="btn-action btn-back">Voltar para Início</a>
-                </div>
+                <?php if (!$accountType): ?>
+                    <div class="register-header-actions">
+                        <a href="/NEXAR/" class="btn-action btn-back">Voltar para Início</a>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <?php if (!empty($registerError)): ?>
@@ -1096,8 +1099,6 @@ if (isset($values['cnpj'])) {
                                 </div>
                             </div>
                             -->
-
-                            </div>
                             <div class="form-group full">
                                 <label class="form-label">Descrição da Empresa <span class="required">*</span></label>
                                 <textarea name="companyDescription" class="form-textarea" placeholder="Conte como sua empresa atende outros negócios"><?php echo $values['companyDescription'] ?? ''; ?></textarea>
