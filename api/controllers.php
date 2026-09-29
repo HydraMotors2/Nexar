@@ -2,6 +2,11 @@
 if (!class_exists('CnpjController')) {
     class CnpjController {
         public function validate(array $params): void {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_name(SESSION_NAME);
+                session_start();
+            }
+
             $input = json_decode(file_get_contents('php://input'), true);
 
             if (!is_array($input) || !isset($input['cnpj']) || !is_string($input['cnpj'])) {
@@ -11,6 +16,10 @@ if (!class_exists('CnpjController')) {
             $cnpj = $input['cnpj'];
             $digits = normalizeCnpj($cnpj);
             $lookup = lookupCnpj($digits);
+
+            if ($lookup['valid'] && $lookup['exists']) {
+                $_SESSION['validated_cnpjs'][$digits] = time();
+            }
 
             ApiResponse::success([
                 'valid' => $lookup['valid'],

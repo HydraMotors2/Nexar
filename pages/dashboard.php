@@ -1,4 +1,16 @@
-<?php require_once __DIR__ . '/../php/auth.php'; ?>
+<?php
+require_once __DIR__ . '/../php/auth.php';
+
+$auth = Auth::getInstance();
+if (!$auth->check()) {
+    header('Location: /NEXAR/login');
+    exit;
+}
+
+$dashboardUser = $auth->user();
+$dashboardUserName = trim(($dashboardUser['first_name'] ?? '') . ' ' . ($dashboardUser['last_name'] ?? ''));
+$dashboardUserName = $dashboardUserName !== '' ? $dashboardUserName : ($dashboardUser['email'] ?? 'Usuário');
+?>
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
@@ -283,6 +295,90 @@
         .search-box {
             position: relative;
             width: 300px;
+        }
+
+        .search-results {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 200;
+            display: none;
+            width: min(440px, calc(100vw - 24px));
+            max-height: min(70vh, 520px);
+            overflow-y: auto;
+            background: #151918;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+        }
+
+        .search-results.open {
+            display: block;
+        }
+
+        .search-result {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            color: var(--color-white);
+            text-decoration: none;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .search-result:last-child {
+            border-bottom: 0;
+        }
+
+        .search-result:hover,
+        .search-result:focus-visible {
+            background: rgba(255, 255, 255, 0.06);
+            outline: none;
+        }
+
+        .search-result-position {
+            color: var(--color-primary);
+            font-weight: var(--font-bold);
+            text-align: center;
+        }
+
+        .search-result-copy {
+            min-width: 0;
+        }
+
+        .search-result-title,
+        .search-result-subtitle {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-result-title {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+        }
+
+        .search-result-subtitle {
+            margin-top: 3px;
+            color: var(--color-gray-400);
+            font-size: var(--text-xs);
+        }
+
+        .search-result-plan {
+            padding: 5px 8px;
+            border: 1px solid rgba(0, 212, 170, 0.28);
+            border-radius: var(--radius-md);
+            color: #77e5c8;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .search-results-message {
+            padding: 14px;
+            color: var(--color-gray-400);
+            font-size: var(--text-sm);
         }
         
         .search-box input {
@@ -791,7 +887,19 @@
             }
             
             .search-box {
-                display: none;
+                display: block;
+                width: min(180px, 38vw);
+            }
+
+            .search-results {
+                position: fixed;
+                top: 64px;
+                right: 12px;
+                width: min(440px, calc(100vw - 24px));
+            }
+
+            .header-right {
+                gap: var(--space-2);
             }
             
             .dashboard-content {
@@ -940,8 +1048,8 @@
                 <div class="user-menu">
                     <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop" alt="User" class="user-avatar">
                     <div class="user-info">
-                        <div class="user-name">John Doe</div>
-                        <div class="user-email">john@example.com</div>
+                        <div class="user-name"><?php echo htmlspecialchars($dashboardUserName, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="user-email"><?php echo htmlspecialchars($dashboardUser['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                 </div>
             </div>
@@ -960,7 +1068,8 @@
                 <div class="header-right">
                     <div class="search-box">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input id="globalSearch" type="text" placeholder="Buscar projetos, tarefas...">
+                        <input id="globalSearch" type="search" placeholder="Buscar fornecedores..." autocomplete="off" aria-controls="globalSearchResults" aria-expanded="false">
+                        <div class="search-results" id="globalSearchResults" role="listbox" aria-label="Resultados da pesquisa"></div>
                     </div>
                     <button class="notification-btn" id="messagesBtn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -1196,6 +1305,118 @@
         setTimeout(() => {
             showToast('info', 'Bem-vindo de volta!', 'Você tem 3 novas mensagens e 2 propostas pendentes.');
         }, 1000);
+    </script>
+    <script>
+        (() => {
+            const searchInput = document.getElementById('globalSearch');
+            const searchResults = document.getElementById('globalSearchResults');
+            if (!searchInput || !searchResults) return;
+
+            let searchTimer;
+            let activeController;
+            let requestId = 0;
+
+            const showMessage = (message) => {
+                searchResults.replaceChildren();
+                const item = document.createElement('div');
+                item.className = 'search-results-message';
+                item.textContent = message;
+                searchResults.appendChild(item);
+                searchResults.classList.add('open');
+                searchInput.setAttribute('aria-expanded', 'true');
+            };
+
+            const renderResults = (results) => {
+                searchResults.replaceChildren();
+                if (!results.length) {
+                    showMessage('Nenhum fornecedor encontrado.');
+                    return;
+                }
+
+                results.slice(0, 3).forEach((result, index) => {
+                    const link = document.createElement('a');
+                    link.className = 'search-result';
+                    link.href = result.url;
+                    link.setAttribute('role', 'option');
+
+                    const position = document.createElement('span');
+                    position.className = 'search-result-position';
+                    position.textContent = `${result.position || index + 1}º`;
+
+                    const copy = document.createElement('span');
+                    copy.className = 'search-result-copy';
+                    const title = document.createElement('span');
+                    title.className = 'search-result-title';
+                    title.textContent = result.title;
+                    const subtitle = document.createElement('span');
+                    subtitle.className = 'search-result-subtitle';
+                    subtitle.textContent = result.subtitle || '';
+                    copy.append(title, subtitle);
+
+                    const plan = document.createElement('span');
+                    plan.className = 'search-result-plan';
+                    plan.textContent = result.plan_label || (result.type === 'service' ? 'Serviço' : 'Empresa');
+
+                    link.append(position, copy, plan);
+                    searchResults.appendChild(link);
+                });
+
+                searchResults.classList.add('open');
+                searchInput.setAttribute('aria-expanded', 'true');
+            };
+
+            const search = async () => {
+                const query = searchInput.value.trim();
+                if (query.length < 2) {
+                    searchResults.classList.remove('open');
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    return;
+                }
+
+                if (activeController) activeController.abort();
+                activeController = new AbortController();
+                const currentRequest = ++requestId;
+                showMessage('Buscando fornecedores...');
+
+                try {
+                    const response = await fetch(`/NEXAR/api/dashboard/search.php?q=${encodeURIComponent(query)}`, {
+                        signal: activeController.signal,
+                        headers: { Accept: 'application/json' }
+                    });
+                    const payload = await response.json();
+                    if (currentRequest !== requestId) return;
+                    if (!response.ok || payload.success !== true) {
+                        showMessage('Não foi possível realizar a pesquisa.');
+                        return;
+                    }
+                    renderResults(payload.results || []);
+                } catch (error) {
+                    if (error.name !== 'AbortError' && currentRequest === requestId) {
+                        showMessage('Não foi possível conectar à pesquisa.');
+                    }
+                }
+            };
+
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(search, 220);
+            });
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    searchResults.classList.remove('open');
+                    searchInput.setAttribute('aria-expanded', 'false');
+                } else if (event.key === 'Enter') {
+                    const firstResult = searchResults.querySelector('.search-result');
+                    if (firstResult) window.location.href = firstResult.href;
+                }
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.search-box')) {
+                    searchResults.classList.remove('open');
+                    searchInput.setAttribute('aria-expanded', 'false');
+                }
+            });
+        })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/NEXAR/public/js/dashboard.js"></script>

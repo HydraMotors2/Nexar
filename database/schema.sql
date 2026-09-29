@@ -54,6 +54,40 @@ CREATE INDEX IF NOT EXISTS `idx_users_uuid` ON `users` (`uuid`);
 CREATE INDEX IF NOT EXISTS `idx_users_deleted_at` ON `users` (`deleted_at`);
 
 -- =====================================================
+-- TABLE: email_verifications
+-- Tracks email verification tokens for newly registered users
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `email_verifications` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `user_id` INTEGER NOT NULL,
+    `token` VARCHAR(255) NOT NULL,
+    `expires_at` TIMESTAMP NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS `idx_email_verifications_user_id` ON `email_verifications` (`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_email_verifications_token` ON `email_verifications` (`token`);
+CREATE INDEX IF NOT EXISTS `idx_email_verifications_expires_at` ON `email_verifications` (`expires_at`);
+
+-- =====================================================
+-- TABLE: remember_tokens
+-- Secure persistent login tokens for "remember me" sessions
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `remember_tokens` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `user_id` INTEGER NOT NULL,
+    `token` VARCHAR(255) NOT NULL,
+    `expires_at` TIMESTAMP NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS `idx_remember_tokens_user_id` ON `remember_tokens` (`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_remember_tokens_token` ON `remember_tokens` (`token`);
+CREATE INDEX IF NOT EXISTS `idx_remember_tokens_expires_at` ON `remember_tokens` (`expires_at`);
+
+-- =====================================================
 -- TABLE: entrepreneurs
 -- Marketplace buyer profiles for micro and small businesses
 -- =====================================================
@@ -73,6 +107,9 @@ CREATE TABLE IF NOT EXISTS `entrepreneurs` (
     `interested_categories` TEXT NULL,
     `products_purchased` TEXT NULL,
     `purchase_frequency` VARCHAR(100) NULL DEFAULT NULL,
+    `plan` TEXT NOT NULL DEFAULT 'free' CHECK (`plan` IN ('free','starter','growth')),
+    `payment_status` TEXT NOT NULL DEFAULT 'trial' CHECK (`payment_status` IN ('trial','pending','paid','canceled')),
+    `payment_mode` TEXT NOT NULL DEFAULT 'manual_test' CHECK (`payment_mode` IN ('manual_test','gateway','trial')),
     `metadata` TEXT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -106,7 +143,9 @@ CREATE TABLE IF NOT EXISTS `suppliers` (
     `service_region` VARCHAR(150) NULL DEFAULT NULL,
     `website` VARCHAR(255) NULL DEFAULT NULL,
     `whatsapp` VARCHAR(50) NULL DEFAULT NULL,
-    `plan` TEXT NOT NULL DEFAULT 'basic' CHECK (`plan` IN ('basic','professional','premium')),
+    `plan` TEXT NOT NULL DEFAULT 'account' CHECK (`plan` IN ('account','boost','promoted')),
+    `payment_status` TEXT NOT NULL DEFAULT 'trial' CHECK (`payment_status` IN ('trial','pending','paid','canceled')),
+    `payment_mode` TEXT NOT NULL DEFAULT 'manual_test' CHECK (`payment_mode` IN ('manual_test','gateway','trial')),
     `metadata` TEXT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

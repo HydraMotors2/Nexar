@@ -49,12 +49,158 @@ class Database {
 
             $this->connection = new PDO($dsn, null, null, $options);
             $this->connection->exec('PRAGMA foreign_keys = ON');
+
+            $usersTableStatement = $this->connection->query(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users' LIMIT 1"
+            );
+            $usersTable = $usersTableStatement->fetchColumn();
+            $usersTableStatement->closeCursor();
+
+            if (!$usersTable) {
+                $schemaPath = BASE_PATH . '/database/schema.sql';
+                $schema = is_file($schemaPath) ? file_get_contents($schemaPath) : false;
+
+                if ($schema === false) {
+                    throw new RuntimeException('Database schema file could not be read.');
+                }
+
+                $this->connection->exec($schema);
+            }
+
+            $requiredTables = [
+                'email_verifications' => "CREATE TABLE IF NOT EXISTS `email_verifications` ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_id` INTEGER NOT NULL, `token` VARCHAR(255) NOT NULL, `expires_at` TIMESTAMP NOT NULL, `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE );",
+                'remember_tokens' => "CREATE TABLE IF NOT EXISTS `remember_tokens` ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_id` INTEGER NOT NULL, `token` VARCHAR(255) NOT NULL, `expires_at` TIMESTAMP NOT NULL, `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE );",
+            ];
+
+            foreach ($requiredTables as $table => $sql) {
+                $stmt = $this->connection->prepare(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = :table LIMIT 1"
+                );
+                $stmt->execute(['table' => $table]);
+                $tableExists = $stmt->fetchColumn();
+                $stmt->closeCursor();
+
+                if (!$tableExists) {
+                    $this->connection->exec($sql);
+                }
+            }
+
+            $columnChecks = [
+                'entrepreneurs' => [
+                    'plan' => "ALTER TABLE entrepreneurs ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
+                    'payment_status' => "ALTER TABLE entrepreneurs ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'trial'",
+                    'payment_mode' => "ALTER TABLE entrepreneurs ADD COLUMN payment_mode TEXT NOT NULL DEFAULT 'manual_test'",
+                ],
+                'suppliers' => [
+                    'plan' => "ALTER TABLE suppliers ADD COLUMN plan TEXT NOT NULL DEFAULT 'account'",
+                    'payment_status' => "ALTER TABLE suppliers ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'trial'",
+                    'payment_mode' => "ALTER TABLE suppliers ADD COLUMN payment_mode TEXT NOT NULL DEFAULT 'manual_test'",
+                ],
+            ];
+
+            foreach ($columnChecks as $table => $columns) {
+                $tableInfo = $this->connection->query("PRAGMA table_info($table)")->fetchAll();
+                $existingColumns = [];
+                foreach ($tableInfo as $column) {
+                    $existingColumns[] = $column['name'];
+                }
+
+                foreach ($columns as $columnName => $alterSql) {
+                    if (!in_array($columnName, $existingColumns, true)) {
+                        $this->connection->exec($alterSql);
+                    }
+                }
+            }
+
+            $this->migrateLegacySupplierPlans();
+
             $this->connected = true;
         } catch (PDOException $e) {
             if (is_debug()) {
                 throw new Exception('Database connection failed: ' . $e->getMessage());
             }
             throw new Exception('Database connection failed. Please check your configuration.');
+        }
+    }
+
+    private function migrateLegacySupplierPlans(): void {
+        $tableStatement = $this->connection->query(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'suppliers'"
+        );
+        $tableSql = $tableStatement->fetchColumn();
+        $tableStatement->closeCursor();
+
+        if (!is_string($tableSql)
+            || !str_contains($tableSql, "'basic'")
+            || !str_contains($tableSql, "'professional'")
+            || !str_contains($tableSql, "'premium'")) {
+            return;
+        }
+
+        $columns = [
+            'id', 'user_id', 'cnpj', 'legal_name', 'trade_name', 'phone', 'city', 'state',
+            'business_segment', 'logo', 'cover_image', 'description', 'category', 'main_products',
+            'service_region', 'website', 'whatsapp', 'plan', 'payment_status', 'payment_mode',
+            'metadata', 'created_at', 'updated_at',
+        ];
+        $columnsStatement = $this->connection->query('PRAGMA table_info(suppliers)');
+        $existingColumns = array_column($columnsStatement->fetchAll(), 'name');
+        $columnsStatement->closeCursor();
+
+        if (array_diff($columns, $existingColumns) || array_diff($existingColumns, $columns)) {
+            throw new RuntimeException('Cannot migrate suppliers table with an unexpected schema.');
+        }
+
+        $columnList = implode(', ', array_map(static fn(string $column): string => '`' . $column . '`', $columns));
+
+        $this->connection->beginTransaction();
+        try {
+            $this->connection->exec("CREATE TABLE `suppliers_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `user_id` INTEGER NOT NULL,
+                `cnpj` VARCHAR(18) NULL DEFAULT NULL,
+                `legal_name` VARCHAR(255) NULL DEFAULT NULL,
+                `trade_name` VARCHAR(255) NULL DEFAULT NULL,
+                `phone` VARCHAR(20) NULL DEFAULT NULL,
+                `city` VARCHAR(100) NULL DEFAULT NULL,
+                `state` VARCHAR(2) NULL DEFAULT NULL,
+                `business_segment` VARCHAR(150) NULL DEFAULT NULL,
+                `logo` BLOB NULL,
+                `cover_image` BLOB NULL,
+                `description` TEXT NULL,
+                `category` VARCHAR(150) NULL DEFAULT NULL,
+                `main_products` TEXT NULL,
+                `service_region` VARCHAR(150) NULL DEFAULT NULL,
+                `website` VARCHAR(255) NULL DEFAULT NULL,
+                `whatsapp` VARCHAR(50) NULL DEFAULT NULL,
+                `plan` TEXT NOT NULL DEFAULT 'account' CHECK (`plan` IN ('account','boost','promoted')),
+                `payment_status` TEXT NOT NULL DEFAULT 'trial' CHECK (`payment_status` IN ('trial','pending','paid','canceled')),
+                `payment_mode` TEXT NOT NULL DEFAULT 'manual_test' CHECK (`payment_mode` IN ('manual_test','gateway','trial')),
+                `metadata` TEXT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            )");
+            $this->connection->exec("INSERT INTO `suppliers_new` ($columnList)
+                SELECT `id`, `user_id`, `cnpj`, `legal_name`, `trade_name`, `phone`, `city`, `state`,
+                    `business_segment`, `logo`, `cover_image`, `description`, `category`, `main_products`,
+                    `service_region`, `website`, `whatsapp`,
+                    CASE `plan` WHEN 'basic' THEN 'account' WHEN 'professional' THEN 'boost'
+                        WHEN 'premium' THEN 'promoted' ELSE `plan` END,
+                    `payment_status`, `payment_mode`, `metadata`, `created_at`, `updated_at`
+                FROM `suppliers`");
+            $this->connection->exec('DROP TABLE `suppliers`');
+            $this->connection->exec('ALTER TABLE `suppliers_new` RENAME TO `suppliers`');
+            $this->connection->exec('CREATE INDEX IF NOT EXISTS `idx_suppliers_user_id` ON `suppliers` (`user_id`)');
+            $this->connection->exec('CREATE INDEX IF NOT EXISTS `idx_suppliers_cnpj` ON `suppliers` (`cnpj`)');
+            $this->connection->exec('CREATE INDEX IF NOT EXISTS `idx_suppliers_state` ON `suppliers` (`state`)');
+            $this->connection->exec('CREATE INDEX IF NOT EXISTS `idx_suppliers_category` ON `suppliers` (`category`)');
+            $this->connection->commit();
+        } catch (Throwable $e) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            throw $e;
         }
     }
 

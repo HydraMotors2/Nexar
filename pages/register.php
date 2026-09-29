@@ -6,6 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../php/database.php';
+require_once __DIR__ . '/../php/auth.php';
 
 function safe(string $value = ''): string {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['registration']['step'] = $newStep;
             // Store form data temporarily for preservation
             $formKeys = ['fullName', 'email', 'password', 'passwordConfirm', 'cnpj', 'companyLegalName', 
-                         'phone', 'segment', 'city', 'state', 'numberEmployees', 'revenueRange',
+                         'phone', 'companyPhone', 'segment', 'city', 'state', 'numberEmployees', 'revenueRange',
                          'interestedCategories', 'productsPurchased', 'purchaseFrequency', 'companyDescription',
                          'category', 'mainProducts', 'serviceRegion', 'website', 'whatsapp', 'plan', 'termsAccepted'];
             foreach ($formKeys as $key) {
@@ -90,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'cnpj' => '',
             'companyLegalName' => '',
             'phone' => '',
+            'companyPhone' => '',
             'segment' => '',
             'city' => '',
             'state' => '',
@@ -104,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'serviceRegion' => '',
             'website' => '',
             'whatsapp' => '',
-            'plan' => '',
+            'plan' => $accountType === 'supplier' ? 'account' : 'free',
         ];
 
         if ($data['fullName'] === '') {
@@ -130,18 +132,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($data['cnpj'] === '') {
             $errors['cnpj'] = 'CNPJ é obrigatório.';
         } else {
-            $cnpjLookup = lookupCnpj($data['cnpj']);
-            if (!$cnpjLookup['valid']) {
-                $errors['cnpj'] = $cnpjLookup['error'];
-            } elseif (!$cnpjLookup['exists']) {
-                $errors['cnpj'] = $cnpjLookup['error'] ?? 'CNPJ não encontrado na BrasilAPI.';
+            $cnpjDigits = normalizeCnpj($data['cnpj']);
+            $validatedAt = $_SESSION['validated_cnpjs'][$cnpjDigits] ?? null;
+            $wasRecentlyValidated = is_int($validatedAt) && $validatedAt >= time() - 900;
+
+            if (!isValidCnpj($cnpjDigits)) {
+                $errors['cnpj'] = 'Informe um CNPJ válido com 14 dígitos.';
+            } elseif ($wasRecentlyValidated) {
+                $data['cnpj'] = $cnpjDigits;
             } else {
-                $data['cnpj'] = $cnpjLookup['digits'];
+                $cnpjLookup = lookupCnpj($cnpjDigits);
+                if (!$cnpjLookup['exists']) {
+                    $errors['cnpj'] = $cnpjLookup['error'] ?? 'CNPJ não encontrado na BrasilAPI.';
+                } else {
+                    $data['cnpj'] = $cnpjLookup['digits'];
+                    $_SESSION['validated_cnpjs'][$data['cnpj']] = time();
+                }
             }
         }
 
         if ($accountType === 'entrepreneur') {
-            $required = ['companyLegalName', 'numberEmployees', 'revenueRange', 'purchaseFrequency'];
+            $required = ['companyLegalName', 'companyPhone', 'numberEmployees', 'revenueRange', 'purchaseFrequency'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     $errors[$field] = 'Campo obrigatório.';
@@ -154,12 +165,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($accountType === 'supplier') {
-            $required = ['companyLegalName', 'category', 'companyDescription', 'plan'];
+            $required = ['companyLegalName', 'companyPhone', 'category', 'companyDescription', 'plan'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     $errors[$field] = 'Campo obrigatório.';
                 }
             }
+
+            $data['plan'] = normalize_plan_key('supplier', $data['plan'] ?? 'account');
+        } else {
+            $data['plan'] = normalize_plan_key('entrepreneur', $data['plan'] ?? 'free');
         }
 
         if (empty($errors)) {
@@ -170,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['email'] = 'E-mail já está em uso.';
             }
 
-            if (!empty($data['cnpj'])) {
+            if (!is_payment_test_mode() && !empty($data['cnpj'])) {
                 $existingCnpj = $db->count('entrepreneurs', 'cnpj = :cnpj', ['cnpj' => $data['cnpj']]);
                 $existingCnpj += $db->count('suppliers', 'cnpj = :cnpj', ['cnpj' => $data['cnpj']]);
                 if ($existingCnpj > 0) {
@@ -181,102 +196,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $db = Database::getInstance();
-            $nameParts = preg_split('/\s+/', $data['fullName']);
-            $firstName = $nameParts[0] ?? '';
-            $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : $firstName;
             $userId = null;
 
+            $db->beginTransaction();
             try {
+                $nameParts = preg_split('/\s+/', $data['fullName']);
+                $firstName = $nameParts[0] ?? '';
+                $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : $firstName;
+
                 $userId = $db->insert('users', [
                     'uuid' => generateUuid(),
                     'email' => $data['email'],
                     'password' => password_hash($data['password'], PASSWORD_BCRYPT),
                     'first_name' => $firstName,
                     'last_name' => $lastName,
+                    'phone' => $data['phone'],
                     'account_type' => $accountType,
                     'role' => $accountType === 'supplier' ? 'provider' : 'client',
                     'status' => 'active',
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);
-            } catch (Exception $e) {
+
+                $normalizedPlan = normalize_plan_key($accountType, $data['plan'] ?? ($accountType === 'supplier' ? 'account' : 'free'));
+                $paymentStatus = is_payment_test_mode() ? 'trial' : 'pending';
+                $paymentMode = is_payment_test_mode() ? 'manual_test' : 'gateway';
+
+                if ($accountType === 'entrepreneur') {
+                    $photoData = null;
+                    /*
+                    if (isset($_FILES['companyPhoto']) && $_FILES['companyPhoto']['size'] > 0) {
+                        $photoData = file_get_contents($_FILES['companyPhoto']['tmp_name']);
+                    }
+                    */
+
+                    $db->insert('entrepreneurs', [
+                        'user_id' => $userId,
+                        'cnpj' => $data['cnpj'],
+                        'legal_name' => $data['companyLegalName'],
+                        'trade_name' => $data['tradeName'] ?? $data['companyLegalName'],
+                        'phone' => $data['companyPhone'] ?: null,
+                        'business_segment' => $data['segment'] ?: null,
+                        'city' => $data['city'] ?: null,
+                        'state' => $data['state'] ?: null,
+                        'company_photo' => $photoData,
+                        'employees_range' => $data['numberEmployees'] ?: null,
+                        'revenue_range' => $data['revenueRange'] ?: null,
+                        'interested_categories' => $data['interestedCategories'] ?: null,
+                        'products_purchased' => $data['productsPurchased'] ?: null,
+                        'purchase_frequency' => $data['purchaseFrequency'] ?: null,
+                        'plan' => $normalizedPlan,
+                        'payment_status' => $paymentStatus,
+                        'payment_mode' => $paymentMode,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+
+                if ($accountType === 'supplier') {
+                    $logoData = null;
+                    $coverData = null;
+                    /*
+                    if (isset($_FILES['companyLogo']) && $_FILES['companyLogo']['size'] > 0) {
+                        $logoData = file_get_contents($_FILES['companyLogo']['tmp_name']);
+                    }
+                    if (isset($_FILES['coverImage']) && $_FILES['coverImage']['size'] > 0) {
+                        $coverData = file_get_contents($_FILES['coverImage']['tmp_name']);
+                    }
+                    */
+
+                    $db->insert('suppliers', [
+                        'user_id' => $userId,
+                        'cnpj' => $data['cnpj'],
+                        'legal_name' => $data['companyLegalName'],
+                        'trade_name' => $data['tradeName'] ?? $data['companyLegalName'],
+                        'phone' => $data['companyPhone'] ?: null,
+                        'city' => $data['city'] ?: null,
+                        'state' => $data['state'] ?: null,
+                        'business_segment' => $data['segment'] ?: null,
+                        'logo' => $logoData,
+                        'cover_image' => $coverData,
+                        'description' => $data['companyDescription'] ?: null,
+                        'category' => $data['category'] ?: null,
+                        'main_products' => $data['mainProducts'] ?: null,
+                        'service_region' => $data['serviceRegion'] ?: null,
+                        'website' => $data['website'] ?: null,
+                        'whatsapp' => $data['whatsapp'] ?: null,
+                        'plan' => $normalizedPlan,
+                        'payment_status' => $paymentStatus,
+                        'payment_mode' => $paymentMode,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->getConnection()?->inTransaction()) {
+                    $db->rollback();
+                }
+                error_log('Registration failed: ' . $e->getMessage());
+                $userId = null;
                 $registerError = 'Falha ao criar conta. Tente novamente.';
             }
 
-            if ($userId && $accountType === 'entrepreneur') {
-                $photoData = null;
-                /*
-                if (isset($_FILES['companyPhoto']) && $_FILES['companyPhoto']['size'] > 0) {
-                    $photoData = file_get_contents($_FILES['companyPhoto']['tmp_name']);
-                }
-                */
-
-                $db->insert('entrepreneurs', [
-                    'user_id' => $userId,
-                    'cnpj' => $data['cnpj'],
-                    'legal_name' => $data['companyLegalName'],
-                    'trade_name' => $data['tradeName'] ?? $data['companyLegalName'],
-                    'phone' => $data['phone'] ?: null,
-                    'business_segment' => $data['segment'] ?: null,
-                    'city' => $data['city'] ?: null,
-                    'state' => $data['state'] ?: null,
-                    'company_photo' => $photoData,
-                    'employees_range' => $data['numberEmployees'] ?: null,
-                    'revenue_range' => $data['revenueRange'] ?: null,
-                    'interested_categories' => $data['interestedCategories'] ?: null,
-                    'products_purchased' => $data['productsPurchased'] ?: null,
-                    'purchase_frequency' => $data['purchaseFrequency'] ?: null,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-            }
-
-            if ($userId && $accountType === 'supplier') {
-                $logoData = null;
-                $coverData = null;
-                /*
-                if (isset($_FILES['companyLogo']) && $_FILES['companyLogo']['size'] > 0) {
-                    $logoData = file_get_contents($_FILES['companyLogo']['tmp_name']);
-                }
-                if (isset($_FILES['coverImage']) && $_FILES['coverImage']['size'] > 0) {
-                    $coverData = file_get_contents($_FILES['coverImage']['tmp_name']);
-                }
-                */
-
-                $db->insert('suppliers', [
-                    'user_id' => $userId,
-                    'cnpj' => $data['cnpj'],
-                    'legal_name' => $data['companyLegalName'],
-                    'trade_name' => $data['tradeName'] ?? $data['companyLegalName'],
-                    'phone' => $data['phone'] ?: null,
-                    'city' => $data['city'] ?: null,
-                    'state' => $data['state'] ?: null,
-                    'business_segment' => $data['segment'] ?: null,
-                    'logo' => $logoData,
-                    'cover_image' => $coverData,
-                    'description' => $data['companyDescription'] ?: null,
-                    'category' => $data['category'] ?: null,
-                    'main_products' => $data['mainProducts'] ?: null,
-                    'service_region' => $data['serviceRegion'] ?: null,
-                    'website' => $data['website'] ?: null,
-                    'whatsapp' => $data['whatsapp'] ?: null,
-                    'plan' => $data['plan'],
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-            }
-
             if ($userId) {
-                $_SESSION['user_id'] = $userId;
-                $_SESSION['user_name'] = $data['fullName'];
-                $_SESSION['user_email'] = $data['email'];
-                $_SESSION['user_role'] = $accountType === 'supplier' ? 'provider' : 'client';
-                $_SESSION['account_type'] = $accountType;
-                $_SESSION['logged_in'] = true;
-                unset($_SESSION['registration']);
+                try {
+                    $loginResult = Auth::getInstance()->login($data['email'], $data['password']);
+                    if ($loginResult['success']) {
+                        unset($_SESSION['registration']);
+                        session_write_close();
+                        header('Location: /NEXAR/dashboard');
+                        exit;
+                    }
+                } catch (Throwable $e) {
+                    error_log('Registration login failed: ' . $e->getMessage());
+                }
 
-                header('Location: /NEXAR/');
-                exit;
+                $registerError = 'A conta foi criada, mas não foi possível iniciar sua sessão. Entre com seus dados.';
             }
 
             if (empty($registerError)) {
@@ -829,7 +866,18 @@ if (isset($values['cnpj'])) {
             </div>
 
             <?php if (!empty($registerError)): ?>
-                <div class="alert"><?php echo safe($registerError); ?></div>
+                <div class="alert" role="alert"><?php echo safe($registerError); ?></div>
+            <?php endif; ?>
+
+            <?php if (!empty($errors)): ?>
+                <div class="alert" role="alert" aria-live="assertive">
+                    <strong>Não foi possível concluir o cadastro. Revise os seguintes itens:</strong>
+                    <ul>
+                        <?php foreach ($errors as $error): ?>
+                            <li><?php echo safe((string)$error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             <?php endif; ?>
 
             <form id="registerForm" class="register-form" method="POST" enctype="multipart/form-data" novalidate>
@@ -888,8 +936,8 @@ if (isset($values['cnpj'])) {
                                 <div class="field-error"><?php echo $errors['email'] ?? ''; ?></div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Telefone <span class="required">*</span></label>
-                                <input type="tel" name="phone" class="form-input" placeholder="(00) 00000-0000" value="<?php echo $values['phone'] ?? ''; ?>" required>
+                                <label class="form-label">Telefone pessoal <span class="required">*</span></label>
+                                <input type="tel" name="phone" class="form-input phone-input" placeholder="(00) 00000-0000" inputmode="numeric" maxlength="15" value="<?php echo $values['phone'] ?? ''; ?>" required>
                                 <div class="field-error"><?php echo $errors['phone'] ?? ''; ?></div>
                             </div>
                         </div>
@@ -919,13 +967,6 @@ if (isset($values['cnpj'])) {
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">CNPJ <span class="required">*</span></label>
-                                    <input type="text" name="cnpj" class="form-input cnpj-input" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
-                                    <div class="cnpj-counter" data-cnpj-counter>0/14</div>
-                                    <div class="cnpj-debug-log" data-cnpj-debug role="status" aria-live="polite"><?php echo safe($errors['cnpj'] ?? ''); ?></div>
-                                    <div class="field-error"><?php echo $errors['cnpj'] ?? ''; ?></div>
-                                </div>
-                                <div class="form-group">
                                     <label class="form-label">Razão Social <span class="required">*</span></label>
                                     <input type="text" name="companyLegalName" class="form-input" placeholder="Razão social" value="<?php echo $values['companyLegalName'] ?? ''; ?>" required>
                                     <div class="field-error"><?php echo $errors['companyLegalName'] ?? ''; ?></div>
@@ -933,9 +974,9 @@ if (isset($values['cnpj'])) {
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Telefone <span class="required">*</span></label>
-                                    <input type="tel" name="phone" class="form-input" placeholder="(00) 00000-0000" value="<?php echo $values['phone'] ?? ''; ?>" required>
-                                    <div class="field-error"><?php echo $errors['phone'] ?? ''; ?></div>
+                                    <label class="form-label">Telefone comercial para contato com fornecedores <span class="required">*</span></label>
+                                    <input type="tel" name="companyPhone" class="form-input phone-input" placeholder="(00) 00000-0000" inputmode="numeric" maxlength="15" value="<?php echo $values['companyPhone'] ?? ''; ?>" required>
+                                    <div class="field-error"><?php echo $errors['companyPhone'] ?? ''; ?></div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Segmento de Atuação</label>
@@ -1033,13 +1074,6 @@ if (isset($values['cnpj'])) {
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">CNPJ <span class="required">*</span></label>
-                                    <input type="text" name="cnpj" class="form-input cnpj-input" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" value="<?php echo $values['cnpj'] ?? ''; ?>" required>
-                                    <div class="cnpj-counter" data-cnpj-counter>0/14</div>
-                                    <div class="cnpj-debug-log" data-cnpj-debug role="status" aria-live="polite"><?php echo safe($errors['cnpj'] ?? ''); ?></div>
-                                    <div class="field-error"><?php echo $errors['cnpj'] ?? ''; ?></div>
-                                </div>
-                                <div class="form-group">
                                     <label class="form-label">Razão Social <span class="required">*</span></label>
                                     <input type="text" name="companyLegalName" class="form-input" placeholder="Razão social" value="<?php echo $values['companyLegalName'] ?? ''; ?>" required>
                                     <div class="field-error"><?php echo $errors['companyLegalName'] ?? ''; ?></div>
@@ -1047,9 +1081,9 @@ if (isset($values['cnpj'])) {
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Telefone <span class="required">*</span></label>
-                                    <input type="tel" name="phone" class="form-input" placeholder="(00) 00000-0000" value="<?php echo $values['phone'] ?? ''; ?>" required>
-                                    <div class="field-error"><?php echo $errors['phone'] ?? ''; ?></div>
+                                    <label class="form-label">Telefone comercial para contato de clientes <span class="required">*</span></label>
+                                    <input type="tel" name="companyPhone" class="form-input phone-input" placeholder="(00) 00000-0000" inputmode="numeric" maxlength="15" value="<?php echo $values['companyPhone'] ?? ''; ?>" required>
+                                    <div class="field-error"><?php echo $errors['companyPhone'] ?? ''; ?></div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Segmento de Atuação</label>
@@ -1140,9 +1174,9 @@ if (isset($values['cnpj'])) {
                                 <label class="form-label">Plano de Assinatura <span class="required">*</span></label>
                                 <select name="plan" class="form-select">
                                     <option value="">Escolha um plano</option>
-                                    <option value="basic" <?php echo (isset($values['plan']) && $values['plan'] === 'basic') ? 'selected' : ''; ?>>Básico</option>
-                                    <option value="professional" <?php echo (isset($values['plan']) && $values['plan'] === 'professional') ? 'selected' : ''; ?>>Profissional</option>
-                                    <option value="premium" <?php echo (isset($values['plan']) && $values['plan'] === 'premium') ? 'selected' : ''; ?>>Premium</option>
+                                    <option value="account" <?php echo (isset($values['plan']) && $values['plan'] === 'account') ? 'selected' : ''; ?>>Conta — R$ 50</option>
+                                    <option value="boost" <?php echo (isset($values['plan']) && $values['plan'] === 'boost') ? 'selected' : ''; ?>>Destaque — R$ 100</option>
+                                    <option value="promoted" <?php echo (isset($values['plan']) && $values['plan'] === 'promoted') ? 'selected' : ''; ?>>Promoção Premium — R$ 200</option>
                                 </select>
                                 <div class="field-error"><?php echo $errors['plan'] ?? ''; ?></div>
                             </div>
@@ -1174,8 +1208,10 @@ if (isset($values['cnpj'])) {
         const currentStepInput = document.getElementById('currentStep');
         const registerForm = document.getElementById('registerForm');
         const confirmModal = document.getElementById('confirmModal');
+        window.__NEXAR_TEST_MODE__ = <?php echo is_payment_test_mode() ? 'true' : 'false'; ?>;
         const initialStep = <?php echo json_encode($step); ?>;
         const cnpjInputs = document.querySelectorAll('.cnpj-input');
+        const phoneInputs = document.querySelectorAll('.phone-input');
 
         function isValidCnpjClient(value) {
             const digits = value.replace(/\D/g, '');
@@ -1206,6 +1242,31 @@ if (isset($values['cnpj'])) {
                 .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
         }
 
+        function formatPhoneClient(value) {
+            const digits = value.replace(/\D/g, '').slice(0, 11);
+            if (digits.length <= 10) {
+                return digits
+                    .replace(/^(\d{2})(\d)/, '($1) $2')
+                    .replace(/^(\(\d{2}\) \d{4})(\d)/, '$1-$2');
+            }
+
+            return digits
+                .replace(/^(\d{2})(\d)/, '($1) $2')
+                .replace(/^(\(\d{2}\) \d{5})(\d)/, '$1-$2');
+        }
+
+        phoneInputs.forEach((input) => {
+            input.value = formatPhoneClient(input.value);
+            input.addEventListener('input', () => {
+                input.value = formatPhoneClient(input.value);
+            });
+            input.addEventListener('paste', (event) => {
+                event.preventDefault();
+                const pastedText = event.clipboardData?.getData('text') || '';
+                input.value = formatPhoneClient(pastedText);
+            });
+        });
+
         const cnpjRequestIds = new WeakMap();
         const cnpjStatuses = new WeakMap();
         const cnpjAbortControllers = new WeakMap();
@@ -1231,6 +1292,25 @@ if (isset($values['cnpj'])) {
         }
 
         async function checkCnpjExists(input, digits) {
+            if (window.__NEXAR_TEST_MODE__ === true) {
+                const validatedResult = {
+                    digits,
+                    exists: true,
+                    checking: false,
+                    validated: true,
+                    apiResult: { mode: 'manual_test' }
+                };
+                cnpjStatuses.set(input, validatedResult);
+                cacheCnpjResult(digits, validatedResult);
+                input.readOnly = true;
+                const debugLog = input.parentElement.querySelector('[data-cnpj-debug]');
+                if (debugLog) {
+                    debugLog.classList.remove('warning');
+                    debugLog.textContent = '';
+                }
+                return true;
+            }
+
             const currentStatus = cnpjStatuses.get(input);
             if (currentStatus?.digits === digits && currentStatus.validated) return true;
 
@@ -1508,71 +1588,11 @@ if (isset($values['cnpj'])) {
                 }
             }
 
-            // Save current form data
-            const formData = new FormData(registerForm);
-            const action = formData.get('action');
-            
-            // Create a hidden form submission
-            const hiddenForm = document.createElement('form');
-            hiddenForm.method = 'POST';
-            
-            // Copy all form data
-            for (let [key, value] of formData.entries()) {
-                if (key === 'action') {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'action';
-                    input.value = 'update_step';
-                    hiddenForm.appendChild(input);
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    hiddenForm.appendChild(input);
-                }
-            }
-            
-            // Add step
-            const stepInput = document.createElement('input');
-            stepInput.type = 'hidden';
-            stepInput.name = 'step';
-            stepInput.value = targetStep;
-            hiddenForm.appendChild(stepInput);
-            
-            document.body.appendChild(hiddenForm);
-            hiddenForm.submit();
+            showStep(targetStep);
         }
 
         function previousStep(targetStep) {
-            const formData = new FormData(registerForm);
-            const hiddenForm = document.createElement('form');
-            hiddenForm.method = 'POST';
-
-            for (let [key, value] of formData.entries()) {
-                if (key === 'action') {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'action';
-                    input.value = 'update_step';
-                    hiddenForm.appendChild(input);
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    hiddenForm.appendChild(input);
-                }
-            }
-
-            const stepInput = document.createElement('input');
-            stepInput.type = 'hidden';
-            stepInput.name = 'step';
-            stepInput.value = targetStep;
-            hiddenForm.appendChild(stepInput);
-
-            document.body.appendChild(hiddenForm);
-            hiddenForm.submit();
+            showStep(targetStep);
         }
 
         function confirmChangeAccountType(event, hasData) {

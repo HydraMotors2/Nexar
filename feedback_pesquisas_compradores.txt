@@ -1,0 +1,87 @@
+RELATORIO DE TESTE DE PESQUISA - NEXAR
+Data: 28/09/2026
+
+RESUMO
+Foram testadas cinco contas de micro e pequenas empresas, uma por segmento. Cada conta executou dez consultas autenticadas, totalizando 50 pesquisas. Todas as chamadas retornaram HTTP 200 e success=true.
+
+As contas usam plano gratuito, CNPJs ficticios de teste e a senha compartilhada NexarTeste2026! Os resultados abaixo mostram as posicoes devolvidas pela busca. Quando menos de tres empresas correspondem ao termo, as posicoes restantes ficam vazias.
+
+CONTAS
+001 | Alimentacao | Emporio Raiz Alimentos LTDA | nexar.buyer.20260928.001@example.com
+002 | Tecnologia | ByteShop Comercio de Informatica | nexar.buyer.20260928.002@example.com
+003 | Logistica | Rota Sul Logistica LTDA | nexar.buyer.20260928.003@example.com
+004 | Saude | Clinica Horizonte Saude LTDA | nexar.buyer.20260928.004@example.com
+005 | Construcao | Construtora Morada LTDA | nexar.buyer.20260928.005@example.com
+
+RANKING OBSERVADO
+Quando as tres empresas do segmento correspondem, a ordem por plano e Promoção Premium, Destaque e Conta.
+
+CONTA 001 - ALIMENTACAO
+01. Alimentacao | 1 Mesa Viva Alimentos LTDA - Promocao Premium; 2 Grao Nobre Distribuidora LTDA - Destaque; 3 Sabor do Campo Distribuidora LTDA - Conta
+02. Sabor do Campo | 1 Sabor do Campo Distribuidora LTDA - Conta
+03. Grao Nobre | 1 Grao Nobre Distribuidora LTDA - Destaque
+04. Mesa Viva | 1 Mesa Viva Alimentos LTDA - Promocao Premium
+05. ingredientes | 1 Mesa Viva Alimentos LTDA - Promocao Premium; 2 Sabor do Campo Distribuidora LTDA - Conta
+06. conservas | 1 Mesa Viva Alimentos LTDA - Promocao Premium; 2 Sabor do Campo Distribuidora LTDA - Conta
+07. farinhas | 1 Grao Nobre Distribuidora LTDA - Destaque; 2 Sabor do Campo Distribuidora LTDA - Conta
+08. cereais | 1 Grao Nobre Distribuidora LTDA - Destaque
+09. temperos | 1 Mesa Viva Alimentos LTDA - Promocao Premium
+10. cozinha profissionais | Sem resultados
+
+CONTA 002 - TECNOLOGIA
+01. Tecnologia | 1 Nuvem e Cia Sistemas LTDA - Promocao Premium; 2 Circuito Pro Tecnologia LTDA - Destaque; 3 ByteNorte Componentes LTDA - Conta
+02. ByteNorte | 1 ByteNorte Componentes LTDA - Conta
+03. Circuito Pro | 1 Circuito Pro Tecnologia LTDA - Destaque
+04. Nuvem e Cia | 1 Nuvem e Cia Sistemas LTDA - Promocao Premium
+05. componentes | 1 ByteNorte Componentes LTDA - Conta
+06. perifericos | 1 ByteNorte Componentes LTDA - Conta
+07. rede | 1 Circuito Pro Tecnologia LTDA - Destaque
+08. computadores | 1 Circuito Pro Tecnologia LTDA - Destaque
+09. software empresarial | 1 Nuvem e Cia Sistemas LTDA - Promocao Premium
+10. nuvem | 1 Nuvem e Cia Sistemas LTDA - Promocao Premium
+
+CONTA 003 - LOGISTICA
+01. Logistica | 1 Carga Viva Express LTDA - Promocao Premium; 2 EixoSul Logistica LTDA - Destaque; 3 Rota Certa Transportes LTDA - Conta
+02. Rota Certa | 1 Rota Certa Transportes LTDA - Conta
+03. EixoSul | 1 EixoSul Logistica LTDA - Destaque
+04. Carga Viva | 1 Carga Viva Express LTDA - Promocao Premium
+05. transporte rodoviario | 1 Rota Certa Transportes LTDA - Conta
+06. armazenagem | 1 EixoSul Logistica LTDA - Destaque
+07. entregas expressas | 1 Carga Viva Express LTDA - Promocao Premium
+08. distribuicao | 1 EixoSul Logistica LTDA - Destaque
+09. logistica reversa | 1 Carga Viva Express LTDA - Promocao Premium
+10. fretes | Sem resultados
+
+CONTA 004 - SAUDE
+01. Saude | 1 Clinica Base Insumos LTDA - Promocao Premium; 2 MedSupply Brasil LTDA - Destaque; 3 Vida Plena Hospitalar LTDA - Conta
+02. Vida Plena | 1 Vida Plena Hospitalar LTDA - Conta
+03. MedSupply | 1 MedSupply Brasil LTDA - Destaque
+04. Clinica Base | 1 Clinica Base Insumos LTDA - Promocao Premium
+05. materiais hospitalares | 1 Vida Plena Hospitalar LTDA - Conta
+06. equipamentos medicos | 1 MedSupply Brasil LTDA - Destaque
+07. insumos clinicos | 1 Clinica Base Insumos LTDA - Promocao Premium
+08. laboratoriais | 1 Clinica Base Insumos LTDA - Promocao Premium
+09. descartaveis | 1 Vida Plena Hospitalar LTDA - Conta
+10. suprimentos | 1 MedSupply Brasil LTDA - Destaque
+
+CONTA 005 - CONSTRUCAO
+01. Construcao | 1 Base Urbana Acabamentos LTDA - Promocao Premium; 2 Construmax Pro LTDA - Destaque; 3 Pilar Forte Materiais LTDA - Conta
+02. Pilar Forte | 1 Pilar Forte Materiais LTDA - Conta
+03. Construmax | 1 Construmax Pro LTDA - Destaque
+04. Base Urbana | 1 Base Urbana Acabamentos LTDA - Promocao Premium
+05. cimento | 1 Pilar Forte Materiais LTDA - Conta
+06. ferramentas | 1 Pilar Forte Materiais LTDA - Conta
+07. materiais estruturais | 1 Construmax Pro LTDA - Destaque
+08. acabamentos | 1 Base Urbana Acabamentos LTDA - Promocao Premium; 2 Construmax Pro LTDA - Destaque
+09. revestimentos | 1 Base Urbana Acabamentos LTDA - Promocao Premium
+10. ferragens | 1 Pilar Forte Materiais LTDA - Conta
+
+FEEDBACK
+- A busca agora consulta perfis da tabela suppliers, incluindo nome, categoria, segmento, descricao, produtos, regiao e localizacao.
+- Os resultados de fornecedores sao priorizados pelo plano: Promocao Premium, Destaque e Conta. A resposta inclui a posicao, o codigo e o nome do plano, alem do preco.
+- A caixa do dashboard chama o endpoint autenticado, mostra ate tres resultados e permite abrir o perfil correspondente do fornecedor.
+- Quando uma pesquisa retorna uma so empresa, isso significa que somente aquele perfil corresponde aos termos pesquisados; nao e uma falha de ordenacao.
+- Os links abrem o perfil correto e exibem nome, segmento, localizacao, plano e produtos sem as avaliacoes e portfolio demonstrativos da antiga pagina TechVision.
+
+CONCLUSAO
+As cinco contas encontram fornecedores dos seus segmentos. A busca retorna os tres fornecedores por categoria na ordem esperada quando o termo corresponde ao segmento e tambem retorna perfis especificos em pesquisas pelo nome ou pelos produtos.

@@ -270,7 +270,7 @@
         });
         
         // Clear errors on input
-        document.getElementById('email').addEventListener('input', () => clearError('email'));
+        document.getElementById('identifier').addEventListener('input', () => clearError('identifier'));
         document.getElementById('password').addEventListener('input', () => clearError('password'));
     </script>
 </body>

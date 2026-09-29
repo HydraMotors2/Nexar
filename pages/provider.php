@@ -1,18 +1,59 @@
 <?php
+require_once __DIR__ . '/../config/config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_name(SESSION_NAME);
+    session_start();
+}
+
 $companyId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$requestedSupplier = ($_GET['type'] ?? '') === 'supplier';
+$isSupplierProfile = false;
+$supplier = null;
+$supplierProducts = '';
+$supplierPlanLabel = '';
 $company = null;
 $services = [];
 
 if ($companyId) {
     require_once __DIR__ . '/../php/database.php';
     $db = Database::getInstance();
-    $db->query('SELECT * FROM companies WHERE id = :id LIMIT 1', ['id' => $companyId]);
-    $company = $db->fetch();
+    if ($requestedSupplier) {
+        $db->query('SELECT * FROM suppliers WHERE id = :id LIMIT 1', ['id' => $companyId]);
+        $supplier = $db->fetch();
+        if ($supplier) {
+            $isSupplierProfile = true;
+            $supplierPlanLabel = plan_label('supplier', $supplier['plan']);
+            $supplierProducts = trim((string)($supplier['main_products'] ?? ''));
+            $location = trim(implode(' - ', array_filter([$supplier['city'] ?? '', $supplier['state'] ?? ''])));
+            $company = [
+                'name' => $supplier['trade_name'] ?: $supplier['legal_name'],
+                'tagline' => implode(' • ', array_unique(array_filter([$supplier['category'] ?? '', $supplier['business_segment'] ?? '']))) ?: 'Fornecedor no marketplace',
+                'city' => $location ?: 'Localização não informada',
+                'completed' => 'Plano: ' . $supplierPlanLabel,
+                'about' => trim((string)($supplier['description'] ?? '')) ?: 'Este fornecedor ainda não adicionou uma descrição.',
+            ];
+        }
+    } else {
+        $db->query('SELECT * FROM companies WHERE id = :id LIMIT 1', ['id' => $companyId]);
+        $company = $db->fetch();
 
-    if ($company) {
-        $db->query('SELECT id, title, description, price_min, price_max FROM services WHERE company_id = :id AND is_active = 1 LIMIT 8', ['id' => $companyId]);
-        $services = $db->fetchAll();
+        if ($company) {
+            $db->query('SELECT id, title, description, price_min, price_max FROM services WHERE company_id = :id AND is_active = 1 LIMIT 8', ['id' => $companyId]);
+            $services = $db->fetchAll();
+        }
     }
+}
+
+if (!$company && $requestedSupplier) {
+    http_response_code(404);
+    $isSupplierProfile = true;
+    $company = [
+        'name' => 'Fornecedor não encontrado',
+        'tagline' => 'Este perfil não está disponível.',
+        'city' => '',
+        'completed' => '',
+        'about' => 'O fornecedor solicitado não foi encontrado.',
+    ];
 }
 
 if (!$company) {
@@ -73,6 +114,29 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
             position: absolute;
             inset: 0;
             background: linear-gradient(to top, var(--color-black-matte) 0%, transparent 60%);
+        }
+
+        .supplier-banner-background {
+            width: 100%;
+            height: 100%;
+            background: #202a26;
+        }
+
+        .supplier-avatar {
+            display: grid;
+            place-items: center;
+            color: var(--color-primary);
+            font-size: 64px;
+            font-weight: var(--font-bold);
+        }
+
+        .supplier-profile .profile-main {
+            grid-template-columns: 1fr;
+        }
+
+        .supplier-profile .profile-content > section:not(:first-child),
+        .supplier-profile .profile-sidebar {
+            display: none;
         }
         
         /* Profile Header */
@@ -662,10 +726,14 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
     <!-- Navbar -->
     <?php include __DIR__ . '/../components/navbar.php'; ?>
     
-    <main class="provider-profile">
+    <main class="provider-profile<?= $isSupplierProfile ? ' supplier-profile' : '' ?>">
         <!-- Banner -->
         <div class="provider-banner" id="providerBanner">
-            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&h=480&fit=crop" alt="Banner da Empresa" loading="lazy">
+            <?php if ($isSupplierProfile): ?>
+                <div class="supplier-banner-background" aria-hidden="true"></div>
+            <?php else: ?>
+                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&h=480&fit=crop" alt="Banner da Empresa" loading="lazy">
+            <?php endif; ?>
             <div class="provider-banner-overlay"></div>
         </div>
         
@@ -673,18 +741,24 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
         <div class="profile-header">
             <div class="profile-header-content">
                 <div class="profile-avatar-wrapper">
-                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop" alt="Logo da Empresa" class="profile-avatar" loading="lazy">
-                    <div class="profile-verified-badge">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
+                    <?php if ($isSupplierProfile): ?>
+                        <div class="profile-avatar supplier-avatar" aria-hidden="true"><?= htmlspecialchars(mb_substr($company['name'], 0, 1)) ?></div>
+                    <?php else: ?>
+                        <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop" alt="Logo da Empresa" class="profile-avatar" loading="lazy">
+                        <div class="profile-verified-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="profile-info">
                     <h1 class="profile-name">
                         <?= htmlspecialchars($company['name']) ?>
-                        <span class="profile-verified-text" style="font-size: var(--text-sm); color: var(--color-primary);">Verificado</span>
+                        <?php if (!$isSupplierProfile): ?>
+                            <span class="profile-verified-text" style="font-size: var(--text-sm); color: var(--color-primary);">Verificado</span>
+                        <?php endif; ?>
                     </h1>
                     <p class="profile-tagline"><?= htmlspecialchars($company['tagline']) ?></p>
                     
@@ -702,9 +776,9 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            Responde em até 2 horas
+                            <?= $isSupplierProfile ? 'Fornecedor no NEXAR' : 'Responde em até 2 horas' ?>
                         </div>
-                        
+                        <?php if (!$isSupplierProfile): ?>
                         <div class="profile-rating">
                             <svg class="star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             <svg class="star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -714,7 +788,7 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
                             <span class="profile-rating-value">4.9</span>
                             <span class="profile-rating-count">(127 avaliações)</span>
                         </div>
-                        
+                        <?php endif; ?>
                         <div class="profile-meta-item">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -762,6 +836,11 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
                     </h2>
                     <div class="profile-description">
                         <p><?= nl2br(htmlspecialchars($company['about'])) ?></p>
+                        <?php if ($isSupplierProfile && $supplierProducts !== ''): ?>
+                            <br>
+                            <p><strong>Principais produtos:</strong> <?= nl2br(htmlspecialchars($supplierProducts)) ?></p>
+                        <?php endif; ?>
+                        <?php if (!$isSupplierProfile): ?>
                         <br>
                         <p>Especializamos em criar produtos digitais belos, funcionais e escaláveis que impulsionam o crescimento dos negócios. Nossa abordagem combina tecnologia de ponta com design centrado no usuário para entregar experiências que realmente importam.</p>
                     </div>
@@ -781,6 +860,7 @@ $metaDescription = $company['tagline'] ?? 'Perfil profissional de fornecedor de 
                             <span class="skill-tag">Blockchain</span>
                         </div>
                     </div>
+                        <?php endif; ?>
                 </section>
                 
                 <!-- Services -->

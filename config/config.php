@@ -6,6 +6,7 @@
 
 // Prevent direct access
 defined('NEXAR_APP') or define('NEXAR_APP', true);
+require_once dirname(__DIR__) . '/payment_mode.php';
 
 // Application Environment
 define('APP_ENV', getenv('APP_ENV') ?: 'development');
@@ -133,6 +134,59 @@ function asset(string $path): string {
     return base_url('public/' . ltrim($path, '/'));
 }
 
+function is_payment_test_mode(): bool {
+    return PAYMENT_TEST_MODE;
+}
+
+function get_plan_catalog(): array {
+    return [
+        'entrepreneur' => [
+            'free' => ['label' => 'Gratuito', 'price' => 0, 'description' => 'Perfil essencial para testar a plataforma'],
+            'starter' => ['label' => 'Micro', 'price' => 25, 'description' => 'Mais visibilidade e recursos básicos'],
+            'growth' => ['label' => 'Pequena empresa', 'price' => 50, 'description' => 'Melhor presença para captar oportunidades'],
+        ],
+        'supplier' => [
+            'account' => ['label' => 'Conta', 'price' => 50, 'description' => 'Acesso para criar a conta e aparecer no marketplace'],
+            'boost' => ['label' => 'Destaque', 'price' => 100, 'description' => 'Aparece mais vezes nas pesquisas e em destaque'],
+            'promoted' => ['label' => 'Promoção Premium', 'price' => 200, 'description' => 'Melhor posicionamento e ampla visibilidade'],
+        ],
+    ];
+}
+
+function normalize_plan_key(string $accountType, string $plan): string {
+    $catalog = get_plan_catalog();
+    $allowed = $catalog[$accountType] ?? [];
+    $plan = strtolower(trim($plan));
+
+    if ($plan === '' || !isset($allowed[$plan])) {
+        return array_key_first($allowed) ?: 'free';
+    }
+
+    return $plan;
+}
+
+function plan_label(string $accountType, string $plan): string {
+    $catalog = get_plan_catalog();
+    $plan = normalize_plan_key($accountType, $plan);
+    return $catalog[$accountType][$plan]['label'] ?? ucfirst($plan);
+}
+
+function plan_price(string $accountType, string $plan): int {
+    $catalog = get_plan_catalog();
+    $plan = normalize_plan_key($accountType, $plan);
+    return (int) ($catalog[$accountType][$plan]['price'] ?? 0);
+}
+
+function can_create_profile_without_payment(string $accountType, string $plan): bool {
+    if (is_payment_test_mode()) {
+        return true;
+    }
+
+    $normalizedPlan = normalize_plan_key($accountType, $plan);
+
+    return in_array($normalizedPlan, ['free', 'account'], true);
+}
+
 function normalizeCnpj(string $cnpj): string {
     return preg_replace('/\D+/', '', $cnpj) ?? '';
 }
@@ -186,6 +240,14 @@ function lookupCnpj(string $cnpj): array {
         return $result;
     }
 
+    if (is_payment_test_mode()) {
+        $result['exists'] = true;
+        $result['company_name'] = 'Cadastro em modo de teste';
+        $result['api_status'] = 200;
+        $result['api_response'] = ['mode' => 'manual_test'];
+        return $result;
+    }
+
     $url = 'https://brasilapi.com.br/api/cnpj/v1/' . rawurlencode($digits);
     $response = false;
     $statusCode = 0;
@@ -234,6 +296,8 @@ function lookupCnpj(string $cnpj): array {
 
 if ($statusCode === 404) {
     $result['error'] = 'CNPJ não encontrado na BrasilAPI.';
+} elseif ($statusCode === 429) {
+    $result['error'] = 'A BrasilAPI limitou as consultas. Aguarde alguns minutos e tente novamente.';
 } elseif ($statusCode === 0) {
     $result['error'] = 'Não foi possível conectar à BrasilAPI. Verifique a conexão do servidor.';
 } else {
