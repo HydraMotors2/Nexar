@@ -100,6 +100,12 @@
                 </form>
 
                 <div id="debugMessage" class="debug-message"></div>
+                <?php if (is_email_verification_enabled()): ?>
+                    <div class="email-resend">
+                        <button type="button" id="resendVerificationBtn" class="auth-link">Não recebeu o e-mail de confirmação?</button>
+                        <p id="resendVerificationStatus" class="email-resend-status" role="status" aria-live="polite"></p>
+                    </div>
+                <?php endif; ?>
                 
                 <!-- Footer -->
                 <div class="auth-footer">
@@ -272,6 +278,38 @@
         // Clear errors on input
         document.getElementById('identifier').addEventListener('input', () => clearError('identifier'));
         document.getElementById('password').addEventListener('input', () => clearError('password'));
+
+        const resendVerificationBtn = document.getElementById('resendVerificationBtn');
+        if (resendVerificationBtn) {
+            resendVerificationBtn.addEventListener('click', async () => {
+                const email = document.getElementById('identifier').value.trim();
+                const status = document.getElementById('resendVerificationStatus');
+
+                if (!validateEmail(email)) {
+                    status.textContent = 'Digite seu e-mail no campo acima para solicitar o reenvio.';
+                    document.getElementById('identifier').focus();
+                    return;
+                }
+
+                resendVerificationBtn.disabled = true;
+                status.textContent = 'Solicitando novo link...';
+                try {
+                    const response = await fetch('<?php echo API_PREFIX; ?>/auth/resend-verification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const result = await response.json();
+                    status.textContent = response.ok
+                        ? result.message
+                        : (result.message || 'Não foi possível solicitar o reenvio agora. Tente novamente em um minuto.');
+                } catch (error) {
+                    status.textContent = 'Não foi possível conectar ao servidor. Tente novamente.';
+                } finally {
+                    resendVerificationBtn.disabled = false;
+                }
+            });
+        }
     </script>
 </body>
 </html>

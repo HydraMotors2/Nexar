@@ -78,6 +78,8 @@ class Auth {
         $userId = $db->insert('users', [
             'uuid' => $this->generateUuid(),
             'email' => $data['email'],
+            'email_verified_at' => is_email_verification_enabled() ? null : date('Y-m-d H:i:s'),
+            'is_test_account' => is_payment_test_mode() ? 1 : 0,
             'password' => $hashedPassword,
             'first_name' => $firstName,
             'last_name' => $lastName,
@@ -88,21 +90,19 @@ class Auth {
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        // Generate email verification token
-        $token = bin2hex(random_bytes(32));
-        $db->insert('email_verifications', [
-            'user_id' => $userId,
-            'token' => $token,
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+24 hours')),
-        ]);
+        if (is_email_verification_enabled()) {
+            $emailSent = $this->sendVerificationEmail($userId, $data['email']);
+            return [
+                'success' => true,
+                'user_id' => $userId,
+                'verification_required' => true,
+                'verification_email_sent' => $emailSent,
+            ];
+        }
 
-        // Send verification email
-        $this->sendVerificationEmail($userId, $token);
-
-        // Auto login
         $this->login($data['email'], $data['password']);
 
-        return ['success' => true, 'user_id' => $userId];
+        return ['success' => true, 'user_id' => $userId, 'verification_required' => false];
     }
 
     /**
@@ -150,6 +150,10 @@ class Auth {
 
         if ($user['status'] === 'banned') {
             return ['success' => false, 'errors' => ['general' => 'Account has been suspended']];
+        }
+
+        if (is_email_verification_enabled() && empty($user['email_verified_at'])) {
+            return ['success' => false, 'errors' => ['general' => 'Confirme seu e-mail pelo link enviado antes de entrar.']];
         }
 
         // Clear failed attempts
@@ -406,19 +410,87 @@ class Auth {
     /**
      * Send verification email
      */
-    private function sendVerificationEmail(int $userId, string $token): void {
-        // Implementation for sending verification email
-        // This would use a mail service like SendGrid, Mailgun, etc.
-        $verificationUrl = base_url("verify-email?token=$token");
-        
-        // Log for development
-        error_log("Verification URL for user $userId: $verificationUrl");
+    public function resendVerificationEmail(string $email): bool {
+        if (!is_email_verification_enabled()) {
+            return false;
+        }
+
+        $rateLimitKey = 'email_verification_resend_' . hash('sha256', strtolower($email));
+        $lastRequest = (int)($_SESSION[$rateLimitKey] ?? 0);
+        if ($lastRequest > time() - 60) {
+            return false;
+        }
+        $_SESSION[$rateLimitKey] = time();
+
+        $db = Database::getInstance();
+        $users = $db->select('users', 'id, email_verified_at', 'email = :email', ['email' => $email]);
+        if (empty($users) || !empty($users[0]['email_verified_at'])) {
+            return false;
+        }
+
+        return $this->sendVerificationEmail((int)$users[0]['id'], $email);
+    }
+
+    public function sendVerificationEmail(int $userId, string $email): bool {
+        if (!is_email_verification_enabled()) {
+            return false;
+        }
+
+        $db = Database::getInstance();
+        $db->delete('email_verifications', 'user_id = :user_id', ['user_id' => $userId]);
+
+        $token = bin2hex(random_bytes(32));
+        $db->insert('email_verifications', [
+            'user_id' => $userId,
+            'token' => $token,
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+        ]);
+
+        $applicationPath = trim(dirname(API_PREFIX), '/');
+        $verificationUrl = base_url($applicationPath . '/verify-email?token=' . rawurlencode($token));
+        $subject = 'Confirme seu e-mail - NEXAR';
+        $message = "Ola,\n\nConfirme seu endereco de e-mail acessando o link abaixo em ate 24 horas:\n\n"
+            . $verificationUrl . "\n\nSe voce nao criou uma conta NEXAR, ignore esta mensagem.";
+        try {
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+                error_log('Verification email delivery failed: PHPMailer is not installed. Run composer install.');
+                return false;
+            }
+
+            $mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mailer->isSMTP();
+            $mailer->Host = MAIL_HOST;
+            $mailer->Port = (int)MAIL_PORT;
+            $mailer->SMTPAuth = MAIL_USER !== '' && MAIL_PASS !== '';
+            $mailer->Username = MAIL_USER;
+            $mailer->Password = MAIL_PASS;
+            $mailer->SMTPSecure = match (strtolower(MAIL_ENCRYPTION)) {
+                'ssl', 'smtps' => \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
+                'tls', 'starttls' => \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS,
+                default => '',
+            };
+            $mailer->Timeout = 10;
+            $mailer->CharSet = 'UTF-8';
+            $mailer->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
+            $mailer->addAddress($email);
+            $mailer->Subject = $subject;
+            $mailer->Body = $message;
+
+            return $mailer->send();
+        } catch (Throwable $e) {
+            error_log('Verification email delivery failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
      * Verify email
      */
     public function verifyEmail(string $token): array {
+        if (!is_email_verification_enabled()) {
+            return ['success' => false, 'errors' => ['general' => 'A verificacao de e-mail esta desativada.']];
+        }
+
         $db = Database::getInstance();
         
         $verification = $db->select('email_verifications', '*', 
@@ -434,7 +506,7 @@ class Auth {
         
         // Update user
         $db->update('users', [
-            'email_verified' => 1,
+            'email_verified_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = :id', ['id' => $verification['user_id']]);
 

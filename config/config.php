@@ -8,6 +8,31 @@
 defined('NEXAR_APP') or define('NEXAR_APP', true);
 require_once dirname(__DIR__) . '/payment_mode.php';
 
+$projectRoot = dirname(__DIR__);
+$composerAutoload = $projectRoot . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+$phpMailerSource = $projectRoot . '/api/PHPMailer-master/src';
+if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)
+    && is_file($phpMailerSource . '/PHPMailer.php')
+    && is_file($phpMailerSource . '/SMTP.php')
+    && is_file($phpMailerSource . '/Exception.php')) {
+    require_once $phpMailerSource . '/Exception.php';
+    require_once $phpMailerSource . '/PHPMailer.php';
+    require_once $phpMailerSource . '/SMTP.php';
+}
+if (class_exists(\Dotenv\Dotenv::class) && is_file($projectRoot . '/.env')) {
+    \Dotenv\Dotenv::createImmutable($projectRoot)->safeLoad();
+}
+
+$configEnv = static function (string $key, string $default = ''): string {
+    $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+    return $value === false || $value === null ? $default : (string)$value;
+};
+$localMailConfigPath = dirname(__DIR__) . '/config/mail.local.php';
+$localMailConfig = is_file($localMailConfigPath) ? require $localMailConfigPath : [];
+
 // Application Environment
 define('APP_ENV', getenv('APP_ENV') ?: 'development');
 define('APP_DEBUG', getenv('APP_DEBUG') ?: true);
@@ -66,13 +91,13 @@ define('UPLOAD_MAX_SIZE', 10 * 1024 * 1024); // 10MB
 define('UPLOAD_ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'application/pdf']);
 
 // Email Configuration
-define('MAIL_HOST', getenv('MAIL_HOST') ?: 'smtp.mailtrap.io');
-define('MAIL_PORT', getenv('MAIL_PORT') ?: 587);
-define('MAIL_USER', getenv('MAIL_USER') ?: '');
-define('MAIL_PASS', getenv('MAIL_PASS') ?: '');
-define('MAIL_ENCRYPTION', 'tls');
-define('MAIL_FROM_ADDRESS', 'noreply@nexar.com');
-define('MAIL_FROM_NAME', 'NEXAR');
+define('MAIL_HOST', $configEnv('MAIL_HOST', (string)($localMailConfig['host'] ?? 'sandbox.smtp.mailtrap.io')));
+define('MAIL_PORT', $configEnv('MAIL_PORT', (string)($localMailConfig['port'] ?? 2525)));
+define('MAIL_USER', $configEnv('MAIL_USERNAME', $configEnv('MAIL_USER', (string)($localMailConfig['username'] ?? ''))));
+define('MAIL_PASS', $configEnv('MAIL_PASSWORD', $configEnv('MAIL_PASS', (string)($localMailConfig['password'] ?? ''))));
+define('MAIL_ENCRYPTION', $configEnv('MAIL_ENCRYPTION', (string)($localMailConfig['encryption'] ?? 'tls')));
+define('MAIL_FROM_ADDRESS', $configEnv('MAIL_FROM_ADDRESS', (string)($localMailConfig['from_address'] ?? 'noreply@nexar.com')));
+define('MAIL_FROM_NAME', $configEnv('MAIL_FROM_NAME', (string)($localMailConfig['from_name'] ?? APP_NAME)));
 
 // Pagination
 define('PER_PAGE', 20);
@@ -92,11 +117,6 @@ if (APP_DEBUG) {
 
 // Set default timezone
 ini_set('date.timezone', 'UTC');
-
-// Autoload composer if exists
-if (file_exists(BASE_PATH . '/vendor/autoload.php')) {
-    require_once BASE_PATH . '/vendor/autoload.php';
-}
 
 /**
  * Helper function to get environment variable
@@ -136,6 +156,10 @@ function asset(string $path): string {
 
 function is_payment_test_mode(): bool {
     return PAYMENT_TEST_MODE;
+}
+
+function is_email_verification_enabled(): bool {
+    return EMAIL_VERIFICATION_ENABLED;
 }
 
 function get_plan_catalog(): array {

@@ -86,6 +86,9 @@ class Database {
             }
 
             $columnChecks = [
+                'users' => [
+                    'is_test_account' => "ALTER TABLE users ADD COLUMN is_test_account INTEGER NOT NULL DEFAULT 0 CHECK (is_test_account IN (0, 1))",
+                ],
                 'entrepreneurs' => [
                     'plan' => "ALTER TABLE entrepreneurs ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
                     'payment_status' => "ALTER TABLE entrepreneurs ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'trial'",
@@ -108,6 +111,11 @@ class Database {
                 foreach ($columns as $columnName => $alterSql) {
                     if (!in_array($columnName, $existingColumns, true)) {
                         $this->connection->exec($alterSql);
+                        if ($table === 'users' && $columnName === 'is_test_account') {
+                            $this->connection->exec("UPDATE users SET is_test_account = 1 WHERE email GLOB 'nexar.demo.20260928.*@example.com' OR email GLOB 'nexar.buyer.20260928.*@example.com'");
+                            $this->connection->exec('CREATE INDEX IF NOT EXISTS `idx_users_test_account` ON `users` (`is_test_account`)');
+                            $this->connection->exec("UPDATE users SET account_type = 'admin' WHERE role = 'admin'");
+                        }
                     }
                 }
             }

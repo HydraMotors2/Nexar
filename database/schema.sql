@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password_reset_expires` TIMESTAMP NULL DEFAULT NULL,
     `failed_login_attempts` INTEGER NOT NULL DEFAULT 0,
     `locked_until` TIMESTAMP NULL DEFAULT NULL,
+    `is_test_account` INTEGER NOT NULL DEFAULT 0 CHECK (`is_test_account` IN (0, 1)),
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL
@@ -52,6 +53,7 @@ CREATE INDEX IF NOT EXISTS `idx_users_role` ON `users` (`role`);
 CREATE INDEX IF NOT EXISTS `idx_users_status` ON `users` (`status`);
 CREATE INDEX IF NOT EXISTS `idx_users_uuid` ON `users` (`uuid`);
 CREATE INDEX IF NOT EXISTS `idx_users_deleted_at` ON `users` (`deleted_at`);
+CREATE INDEX IF NOT EXISTS `idx_users_test_account` ON `users` (`is_test_account`);
 
 -- =====================================================
 -- TABLE: email_verifications

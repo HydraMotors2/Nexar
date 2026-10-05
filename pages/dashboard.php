@@ -1029,6 +1029,12 @@ $dashboardUserName = $dashboardUserName !== '' ? $dashboardUserName : ($dashboar
                 
                 <div class="nav-section">
                     <div class="nav-section-title">Conta</div>
+                    <?php if (($dashboardUser['role'] ?? '') === 'admin'): ?>
+                        <a href="/NEXAR/admin/test-accounts" class="nav-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
+                            <span>Contas de teste</span>
+                        </a>
+                    <?php endif; ?>
                     <a href="#" class="nav-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         <span>Perfil</span>

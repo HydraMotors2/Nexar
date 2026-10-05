@@ -25,6 +25,10 @@
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-border); }
 .auth-divider span { color: var(--color-gray-500); font-size: var(--text-xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; }
 .debug-message { display: none; margin-top: var(--space-4); padding: var(--space-4); background: rgba(255,69,58,.12); border-radius: var(--radius-lg); color: var(--color-error); font-size: var(--text-sm); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.email-resend { margin-top: var(--space-4); text-align: center; }
+.email-resend button { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.email-resend button:disabled { opacity: .6; cursor: wait; }
+.email-resend-status { min-height: 1.4em; margin: var(--space-2) 0 0; color: var(--color-gray-400); font-size: var(--text-sm); line-height: 1.4; }
 .spinner-hidden { display: none; }
 .auth-footer { margin-top: var(--space-6); color: var(--color-gray-400); font-size: var(--text-sm); text-align: center; }
 .password-toggle { position: absolute; top: 50%; right: var(--space-4); display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; color: var(--color-gray-500); cursor: pointer; transform: translateY(-50%); }

@@ -43,9 +43,30 @@ if (!class_exists('AuthController')) {
 
             $result = auth()->register($input);
             if ($result['success']) {
+                if (!empty($result['verification_required'])) {
+                    ApiResponse::success([
+                        'verification_required' => true,
+                        'verification_email_sent' => (bool)($result['verification_email_sent'] ?? false),
+                    ], 'Registration created. Check your email to verify the account.', 201);
+                }
                 ApiResponse::success(['user' => auth()->user(), 'token' => $_SESSION[CSRF_TOKEN_NAME] ?? null], 'Registration successful', 201);
             }
             ApiResponse::validationError($result['errors'] ?? ['unknown' => 'Registration failed']);
+        }
+
+        public function resendVerificationEmail(array $params): void {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $email = is_array($input) ? trim((string)($input['email'] ?? '')) : '';
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                ApiResponse::validationError(['email' => 'Informe um e-mail válido.']);
+            }
+            if (!is_email_verification_enabled()) {
+                ApiResponse::error('Email verification is disabled', 409);
+            }
+
+            auth()->resendVerificationEmail($email);
+            ApiResponse::success(null, 'Se a conta existir e precisar de confirmação, um novo link será enviado.', 202);
         }
 
         public function login(array $params): void {
@@ -79,6 +100,9 @@ if (!class_exists('AuthController')) {
         }
 
         public function verifyEmail(array $params): void {
+            if (!is_email_verification_enabled()) {
+                ApiResponse::error('Email verification is disabled', 409);
+            }
             $input = json_decode(file_get_contents('php://input'), true);
             if (empty($input['token'])) ApiResponse::validationError(['token' => 'Verification token is required']);
 

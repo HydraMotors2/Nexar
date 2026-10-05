@@ -207,6 +207,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userId = $db->insert('users', [
                     'uuid' => generateUuid(),
                     'email' => $data['email'],
+                    'email_verified_at' => is_email_verification_enabled() ? null : date('Y-m-d H:i:s'),
+                    'is_test_account' => is_payment_test_mode() ? 1 : 0,
                     'password' => password_hash($data['password'], PASSWORD_BCRYPT),
                     'first_name' => $firstName,
                     'last_name' => $lastName,
@@ -298,6 +300,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('Registration failed: ' . $e->getMessage());
                 $userId = null;
                 $registerError = 'Falha ao criar conta. Tente novamente.';
+            }
+
+            if ($userId && is_email_verification_enabled()) {
+                $emailSent = Auth::getInstance()->sendVerificationEmail((int)$userId, $data['email']);
+                unset($_SESSION['registration']);
+                session_write_close();
+                header('Location: /NEXAR/verify-email?sent=' . ($emailSent ? '1' : '0'));
+                exit;
             }
 
             if ($userId) {

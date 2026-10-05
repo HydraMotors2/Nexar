@@ -69,6 +69,7 @@ class APIRouter {
         $this->routes['POST']['/cnpj/validate'] = ['CnpjController', 'validate'];
         $this->routes['POST']['/auth/register'] = ['AuthController', 'register'];
         $this->routes['POST']['/auth/login'] = ['AuthController', 'login'];
+        $this->routes['POST']['/auth/resend-verification'] = ['AuthController', 'resendVerificationEmail'];
         $this->routes['POST']['/auth/logout'] = ['AuthController', 'logout', 'auth'];
         $this->routes['GET']['/auth/me'] = ['AuthController', 'me', 'auth'];
         $this->routes['POST']['/auth/verify-email'] = ['AuthController', 'verifyEmail'];
